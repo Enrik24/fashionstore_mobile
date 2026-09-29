@@ -3,6 +3,9 @@ import '../models/user_model.dart';
 import '../models/api_response.dart';
 import '../services/auth_service.dart';
 import '../services/storage_service.dart';
+import 'cart_provider.dart';
+import 'favorites_provider.dart';
+import '../services/notification_service.dart';
 
 enum AuthStatus {
   initial,
@@ -15,6 +18,9 @@ enum AuthStatus {
 class AuthProvider extends ChangeNotifier {
   final AuthService _authService;
   final StorageService _storageService;
+  final CartProvider _cartProvider;
+  FavoritesProvider? _favoritesProvider;
+  NotificationService? _notificationService;
 
   AuthStatus _status = AuthStatus.initial;
   UserModel? _currentUser;
@@ -25,8 +31,30 @@ class AuthProvider extends ChangeNotifier {
   AuthProvider({
     required AuthService authService,
     required StorageService storageService,
+    required CartProvider cartProvider,
+    FavoritesProvider? favoritesProvider,
+    NotificationService? notificationService,
   })  : _authService = authService,
-        _storageService = storageService;
+        _storageService = storageService,
+        _cartProvider = cartProvider,
+        _favoritesProvider = favoritesProvider,
+        _notificationService = notificationService;
+
+  /// Se inyecta desde `main.dart` (el provider se crea antes que este).
+  set favoritesProvider(FavoritesProvider? provider) {
+    _favoritesProvider = provider;
+  }
+
+  set notificationService(NotificationService? service) {
+    _notificationService = service;
+  }
+
+  /// Registra el dispositivo para push (no bloquea si falla).
+  Future<void> _registerPushDevice() async {
+    try {
+      await _notificationService?.registerDevice();
+    } catch (_) {}
+  }
 
   // Getters
   AuthStatus get status => _status;
@@ -46,6 +74,8 @@ class AuthProvider extends ChangeNotifier {
       final token = await _storageService.getAccessToken();
       if (token == null || token.isEmpty) {
         _status = AuthStatus.unauthenticated;
+        _cartProvider.clearCartState();
+        _favoritesProvider?.clearState();
         notifyListeners();
         return;
       }
@@ -68,6 +98,14 @@ class AuthProvider extends ChangeNotifier {
       }
 
       _status = AuthStatus.authenticated;
+      await _cartProvider.loadCart();
+      // Cargar IDs de favoritos para los corazones del catálogo (CU25).
+      // No bloquea el login si falla (p.ej. usuario no cliente).
+      try {
+        await _favoritesProvider?.loadIds();
+      } catch (_) {}
+      // Registrar dispositivo para notificaciones push (CU13).
+      await _registerPushDevice();
     } catch (e) {
       // If token expired or network failed
       final cachedUser = _storageService.getUser();
@@ -76,9 +114,13 @@ class AuthProvider extends ChangeNotifier {
         _currentUser = cachedUser;
         _clienteProfile = _storageService.getClientProfile();
         _status = AuthStatus.authenticated;
+        await _cartProvider.loadCart();
+        await _registerPushDevice();
       } else {
         await _storageService.clearAllSession();
         _status = AuthStatus.unauthenticated;
+        _cartProvider.clearCartState();
+        _favoritesProvider?.clearState();
       }
     } finally {
       notifyListeners();
@@ -117,6 +159,14 @@ class AuthProvider extends ChangeNotifier {
       _status = AuthStatus.authenticated;
       _setLoading(false);
       notifyListeners();
+
+      // Load cart after successful login
+      await _cartProvider.loadCart();
+      try {
+        await _favoritesProvider?.loadIds();
+      } catch (_) {}
+      await _registerPushDevice();
+
       return true;
     } catch (e) {
       _status = AuthStatus.error;
@@ -167,6 +217,14 @@ class AuthProvider extends ChangeNotifier {
       _status = AuthStatus.authenticated;
       _setLoading(false);
       notifyListeners();
+
+      // Load cart after successful registration
+      await _cartProvider.loadCart();
+      try {
+        await _favoritesProvider?.loadIds();
+      } catch (_) {}
+      await _registerPushDevice();
+
       return true;
     } catch (e) {
       _status = AuthStatus.error;
@@ -212,6 +270,15 @@ class AuthProvider extends ChangeNotifier {
     _clienteProfile = null;
     _status = AuthStatus.unauthenticated;
     _errorMessage = null;
+
+    // Clear cart state on logout
+    _cartProvider.clearCartState();
+    _favoritesProvider?.clearState();
+    // Desregistrar el dispositivo para no recibir push de otro usuario.
+    try {
+      await _notificationService?.unregisterDevice();
+    } catch (_) {}
+
     _setLoading(false);
     notifyListeners();
   }
@@ -228,6 +295,47 @@ class AuthProvider extends ChangeNotifier {
       await _storageService.saveClientProfile(profile);
       notifyListeners();
     } catch (_) {}
+  }
+
+  /// Actualiza los datos del perfil del cliente (nombre, apellido, teléfono, dirección).
+  Future<bool> updateProfile({
+    String? nombre,
+    String? apellido,
+    String? telefono,
+    String? direccionEnvio,
+  }) async {
+    _setLoading(true);
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final updatedProfile = await _authService.updateProfile(
+        nombre: nombre,
+        apellido: apellido,
+        telefono: telefono,
+        direccionEnvio: direccionEnvio,
+      );
+      _clienteProfile = updatedProfile;
+      await _storageService.saveClientProfile(updatedProfile);
+
+      if (_currentUser != null) {
+        _currentUser = _currentUser!.copyWith(
+          nombre: updatedProfile.nombre,
+          apellido: updatedProfile.apellido,
+          telefono: updatedProfile.telefono,
+        );
+        await _storageService.saveUser(_currentUser!);
+      }
+
+      _setLoading(false);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e is ApiException ? e.message : e.toString();
+      _setLoading(false);
+      notifyListeners();
+      return false;
+    }
   }
 
   void clearError() {

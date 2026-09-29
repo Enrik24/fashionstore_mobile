@@ -81,6 +81,43 @@ class AuthService {
     }
   }
 
+  /// Actualiza los datos del perfil del cliente (nombre, apellido, teléfono, dirección).
+  /// PUT /api/v1/cliente/perfil
+  Future<ClienteProfile> updateProfile({
+    String? nombre,
+    String? apellido,
+    String? telefono,
+    String? direccionEnvio,
+  }) async {
+    try {
+      final response = await apiService.dio.put(
+        AppConstants.epClientProfile,
+        data: {
+          if (nombre != null) 'nombre': nombre.trim(),
+          if (apellido != null) 'apellido': apellido.trim(),
+          if (telefono != null) 'telefono': telefono.trim(),
+          if (direccionEnvio != null) 'direccion_envio': direccionEnvio.trim(),
+        },
+      );
+      return ClienteProfile.fromJson(response.data as Map<String, dynamic>);
+    } catch (e) {
+      throw apiService.handleError(e);
+    }
+  }
+
+  /// Actualiza la dirección de envío del cliente.
+  /// PUT /api/v1/cliente/direccion
+  Future<void> updateAddress(String direccion) async {
+    try {
+      await apiService.dio.put(
+        AppConstants.epClientDireccion,
+        queryParameters: {'direccion': direccion.trim()},
+      );
+    } catch (e) {
+      throw apiService.handleError(e);
+    }
+  }
+
   /// Cierra la sesión en el servidor.
   /// POST /api/v1/auth/logout
   Future<void> logout() async {

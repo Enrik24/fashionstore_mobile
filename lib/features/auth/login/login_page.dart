@@ -57,10 +57,19 @@ class _LoginPageState extends State<LoginPage> {
       );
       context.go('/home');
     } else {
-      AppNotifications.showError(
-        context,
-        auth.errorMessage ?? 'Error al iniciar sesión. Revisa tus credenciales.',
-      );
+      // CU01: mensajes específicos para cuenta inactiva o bloqueada
+      // (el backend envía el detalle; aquí se refuerza la guía).
+      final msg =
+          auth.errorMessage ?? 'Error al iniciar sesión. Revisa tus credenciales.';
+      final lower = msg.toLowerCase();
+      final texto = (lower.contains('inactiv') ||
+              lower.contains('deshabilit') ||
+              lower.contains('suspend'))
+          ? '$msg Si crees que es un error, contacta al administrador.'
+          : (lower.contains('bloque')
+              ? '$msg Inténtalo de nuevo más tarde o contacta al administrador.'
+              : msg);
+      AppNotifications.showError(context, texto);
     }
   }
 

@@ -192,4 +192,26 @@ class ClienteProfile {
     'telefono': telefono,
     'fecha_registro': fechaRegistro?.toIso8601String(),
   };
+
+  ClienteProfile copyWith({
+    int? id,
+    String? nitCi,
+    String? direccionEnvio,
+    String? nombre,
+    String? apellido,
+    String? correo,
+    String? telefono,
+    DateTime? fechaRegistro,
+  }) {
+    return ClienteProfile(
+      id: id ?? this.id,
+      nitCi: nitCi ?? this.nitCi,
+      direccionEnvio: direccionEnvio ?? this.direccionEnvio,
+      nombre: nombre ?? this.nombre,
+      apellido: apellido ?? this.apellido,
+      correo: correo ?? this.correo,
+      telefono: telefono ?? this.telefono,
+      fechaRegistro: fechaRegistro ?? this.fechaRegistro,
+    );
+  }
 }

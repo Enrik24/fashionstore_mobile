@@ -19,8 +19,10 @@ class AppColors {
   static const Color surface = Color(0xFFFFFFFF);       // Pure White
   static const Color surfaceVariant = Color(0xFFF1F3F5);// Light Container
   static const Color textPrimary = Color(0xFF212529);   // Almost Black
+  static const Color textDark = Color(0xFF212529);      // Alias for primary text
   static const Color textSecondary = Color(0xFF6C757D); // Medium Grey
   static const Color textMuted = Color(0xFFADB5BD);     // Light Muted Grey
+  static const Color textLight = Color(0xFFADB5BD);     // Alias for muted text
   static const Color border = Color(0xFFE9ECEF);        // Light Border
   static const Color divider = Color(0xFFDEE2E6);       // Divider Grey
 

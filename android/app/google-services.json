@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "317875605880",
+    "project_id": "testproject-c062a",
+    "storage_bucket": "testproject-c062a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:317875605880:android:be08ed12d12d1b0532b88d",
+        "android_client_info": {
+          "package_name": "com.example.emergencias_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD5wXJyrHYir9pZrF57kHTXurcunn7_gC4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:317875605880:android:392a2cf1db34826a32b88d",
+        "android_client_info": {
+          "package_name": "com.fashionstore.fashionstore_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD5wXJyrHYir9pZrF57kHTXurcunn7_gC4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
