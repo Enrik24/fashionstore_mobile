@@ -46,13 +46,17 @@ class OrderSummaryWidget extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.receipt_long_outlined, color: AppColors.accent, size: 22),
+              const Icon(
+                Icons.receipt_long_outlined,
+                color: AppColors.accent,
+                size: 22,
+              ),
               const SizedBox(width: 8),
               Text(
                 'Resumen del Pedido',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -73,7 +77,10 @@ class OrderSummaryWidget extends StatelessWidget {
                       children: [
                         Text(
                           item.productoNombre,
-                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -86,7 +93,10 @@ class OrderSummaryWidget extends StatelessWidget {
                   ),
                   Text(
                     currencyFormatter.format(item.subtotal),
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
                   ),
                 ],
               );
@@ -97,8 +107,10 @@ class OrderSummaryWidget extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('Subtotal', style: Theme.of(context).textTheme.bodyMedium),
-              Text(currencyFormatter.format(subtotal),
-                  style: const TextStyle(fontWeight: FontWeight.w600)),
+              Text(
+                currencyFormatter.format(subtotal),
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
             ],
           ),
           if (discount > 0) ...[
@@ -111,9 +123,9 @@ class OrderSummaryWidget extends StatelessWidget {
                       ? 'Descuento (cupón $couponCode)'
                       : 'Descuento cupón',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.success,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    color: AppColors.success,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 Text(
                   '- ${currencyFormatter.format(discount)}',
@@ -152,16 +164,16 @@ class OrderSummaryWidget extends StatelessWidget {
             children: [
               Text(
                 'Total Final',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
               Text(
                 currencyFormatter.format(total),
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.accent,
-                    ),
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.accent,
+                ),
               ),
             ],
           ),

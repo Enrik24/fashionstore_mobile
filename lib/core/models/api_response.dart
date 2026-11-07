@@ -3,11 +3,7 @@ class ApiException implements Exception {
   final int? statusCode;
   final dynamic data;
 
-  ApiException({
-    required this.message,
-    this.statusCode,
-    this.data,
-  });
+  ApiException({required this.message, this.statusCode, this.data});
 
   @override
   String toString() => message;

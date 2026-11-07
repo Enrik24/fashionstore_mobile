@@ -23,19 +23,19 @@ void main() {
 
     test('tipoLabel para cada tipo de comprobante', () {
       expect(
-        ComprobanteModel(numero: 'T', tipo: 'TICKET', montoTotal: 0)
-            .tipoLabel,
+        ComprobanteModel(numero: 'T', tipo: 'TICKET', montoTotal: 0).tipoLabel,
         'Ticket',
       );
       expect(
-        ComprobanteModel(numero: 'R', tipo: 'RECIBO', montoTotal: 0)
-            .tipoLabel,
+        ComprobanteModel(numero: 'R', tipo: 'RECIBO', montoTotal: 0).tipoLabel,
         'Recibo',
       );
       expect(
         ComprobanteModel(
-                numero: 'N', tipo: 'NOTA_VENTA', montoTotal: 0)
-            .tipoLabel,
+          numero: 'N',
+          tipo: 'NOTA_VENTA',
+          montoTotal: 0,
+        ).tipoLabel,
         'Nota de venta',
       );
     });

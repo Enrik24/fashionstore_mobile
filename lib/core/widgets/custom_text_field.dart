@@ -80,19 +80,22 @@ class _CustomTextFieldState extends State<CustomTextField> {
           enabled: widget.enabled,
           maxLines: widget.isPassword ? 1 : widget.maxLines,
           textCapitalization: widget.textCapitalization,
-          style: const TextStyle(
-            fontSize: 15,
-            color: AppColors.textPrimary,
-          ),
+          style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
           decoration: InputDecoration(
             hintText: widget.hint,
             prefixIcon: widget.prefixIcon != null
-                ? Icon(widget.prefixIcon, color: AppColors.textSecondary, size: 20)
+                ? Icon(
+                    widget.prefixIcon,
+                    color: AppColors.textSecondary,
+                    size: 20,
+                  )
                 : null,
             suffixIcon: widget.isPassword
                 ? IconButton(
                     icon: Icon(
-                      _obscureText ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                      _obscureText
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
                       color: AppColors.textSecondary,
                       size: 20,
                     ),

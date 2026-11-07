@@ -42,8 +42,10 @@ class _CouponCardState extends State<CouponCard> {
       _controller.clear();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Cupón $code aplicado: descuento de Bs. '
-              '${cart.discount.toStringAsFixed(2)}'),
+          content: Text(
+            'Cupón $code aplicado: descuento de Bs. '
+            '${cart.discount.toStringAsFixed(2)}',
+          ),
           backgroundColor: AppColors.success,
         ),
       );
@@ -64,9 +66,11 @@ class _CouponCardState extends State<CouponCard> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(ok
-            ? 'Cupón eliminado'
-            : (cart.errorMessage ?? 'No se pudo quitar el cupón')),
+        content: Text(
+          ok
+              ? 'Cupón eliminado'
+              : (cart.errorMessage ?? 'No se pudo quitar el cupón'),
+        ),
         backgroundColor: ok ? AppColors.success : AppColors.error,
       ),
     );
@@ -105,23 +109,30 @@ class _CouponCardState extends State<CouponCard> {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.local_offer_outlined,
-                      color: AppColors.accent, size: 20),
+                  const Icon(
+                    Icons.local_offer_outlined,
+                    color: AppColors.accent,
+                    size: 20,
+                  ),
                   const SizedBox(width: 8),
-                  Text('Cupón de descuento',
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleSmall
-                          ?.copyWith(fontWeight: FontWeight.bold)),
+                  Text(
+                    'Cupón de descuento',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   const Spacer(),
                   if (applied == null)
                     TextButton(
                       onPressed: _showAvailable,
-                      child: const Text('Ver disponibles',
-                          style: TextStyle(
-                              color: AppColors.accent,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12)),
+                      child: const Text(
+                        'Ver disponibles',
+                        style: TextStyle(
+                          color: AppColors.accent,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
                     ),
                 ],
               ),
@@ -129,42 +140,53 @@ class _CouponCardState extends State<CouponCard> {
               if (applied != null)
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 8),
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.success.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                        color: AppColors.success.withOpacity(0.4)),
+                      color: AppColors.success.withOpacity(0.4),
+                    ),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.check_circle,
-                          color: AppColors.success, size: 18),
+                      const Icon(
+                        Icons.check_circle,
+                        color: AppColors.success,
+                        size: 18,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Column(
-                          crossAxisAlignment:
-                              CrossAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(applied,
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.success)),
+                            Text(
+                              applied,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.success,
+                              ),
+                            ),
                             Text(
                               'Descuento: Bs. ${cart.discount.toStringAsFixed(2)}',
                               style: const TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.success),
+                                fontSize: 12,
+                                color: AppColors.success,
+                              ),
                             ),
                           ],
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.close,
-                            size: 18, color: AppColors.textSecondary),
+                        icon: const Icon(
+                          Icons.close,
+                          size: 18,
+                          color: AppColors.textSecondary,
+                        ),
                         tooltip: 'Quitar cupón',
-                        onPressed:
-                            cart.isUpdating ? null : _remove,
+                        onPressed: cart.isUpdating ? null : _remove,
                       ),
                     ],
                   ),
@@ -175,16 +197,15 @@ class _CouponCardState extends State<CouponCard> {
                     Expanded(
                       child: TextField(
                         controller: _controller,
-                        textCapitalization:
-                            TextCapitalization.characters,
+                        textCapitalization: TextCapitalization.characters,
                         decoration: InputDecoration(
                           hintText: 'Ej. BIENVENIDA10',
-                          contentPadding:
-                              const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 10),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
                           border: OutlineInputBorder(
-                            borderRadius:
-                                BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(10),
                           ),
                         ),
                         onSubmitted: (_) =>
@@ -202,7 +223,9 @@ class _CouponCardState extends State<CouponCard> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 12),
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                       ),
                       child: _isApplying
                           ? const SizedBox(
@@ -213,9 +236,10 @@ class _CouponCardState extends State<CouponCard> {
                                 strokeWidth: 2,
                               ),
                             )
-                          : const Text('Aplicar',
-                              style:
-                                  TextStyle(color: Colors.white)),
+                          : const Text(
+                              'Aplicar',
+                              style: TextStyle(color: Colors.white),
+                            ),
                     ),
                   ],
                 ),
@@ -234,8 +258,7 @@ class _AvailableCouponsSheet extends StatefulWidget {
   const _AvailableCouponsSheet({required this.onUse});
 
   @override
-  State<_AvailableCouponsSheet> createState() =>
-      _AvailableCouponsSheetState();
+  State<_AvailableCouponsSheet> createState() => _AvailableCouponsSheetState();
 }
 
 class _AvailableCouponsSheetState extends State<_AvailableCouponsSheet> {
@@ -250,8 +273,7 @@ class _AvailableCouponsSheetState extends State<_AvailableCouponsSheet> {
 
   Future<void> _load() async {
     try {
-      final service =
-          CouponService(apiService: context.read<ApiService>());
+      final service = CouponService(apiService: context.read<ApiService>());
       final list = await service.getDisponibles();
       if (mounted) setState(() => _coupons = list);
     } catch (e) {
@@ -280,23 +302,22 @@ class _AvailableCouponsSheetState extends State<_AvailableCouponsSheet> {
               ),
             ),
             const SizedBox(height: 12),
-            Text('Mis cupones disponibles',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.bold)),
+            Text(
+              'Mis cupones disponibles',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 12),
             if (_coupons == null && _error == null)
               const Center(
                 child: Padding(
                   padding: EdgeInsets.all(24),
-                  child: CircularProgressIndicator(
-                      color: AppColors.accent),
+                  child: CircularProgressIndicator(color: AppColors.accent),
                 ),
               )
             else if (_error != null)
-              Text(_error!,
-                  style: const TextStyle(color: AppColors.error))
+              Text(_error!, style: const TextStyle(color: AppColors.error))
             else if (_coupons!.isEmpty)
               const Text(
                 'No tienes cupones disponibles por ahora.',
@@ -307,62 +328,69 @@ class _AvailableCouponsSheetState extends State<_AvailableCouponsSheet> {
                 child: ListView.separated(
                   shrinkWrap: true,
                   itemCount: _coupons!.length,
-                  separatorBuilder: (_, __) =>
-                      const SizedBox(height: 8),
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
                   itemBuilder: (context, i) {
                     final c = _coupons![i];
                     return Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         border: Border.all(
-                            color: AppColors.accent
-                                .withOpacity(0.4)),
+                          color: AppColors.accent.withOpacity(0.4),
+                        ),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
                         children: [
                           Expanded(
                             child: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(c.codigo,
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold)),
-                                Text(c.valorLabel,
-                                    style: const TextStyle(
-                                        color: AppColors.accent,
-                                        fontWeight: FontWeight.w600)),
+                                Text(
+                                  c.codigo,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  c.valorLabel,
+                                  style: const TextStyle(
+                                    color: AppColors.accent,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
                                 if (c.descripcion != null)
-                                  Text(c.descripcion!,
-                                      style: const TextStyle(
-                                          fontSize: 12,
-                                          color: AppColors
-                                              .textSecondary)),
+                                  Text(
+                                    c.descripcion!,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
                                 if (c.fechaFin != null)
                                   Text(
                                     'Válido hasta ${dateFormat.format(c.fechaFin!)}',
                                     style: const TextStyle(
-                                        fontSize: 11,
-                                        color:
-                                            AppColors.textMuted),
+                                      fontSize: 11,
+                                      color: AppColors.textMuted,
+                                    ),
                                   ),
                                 if (!c.aplicaATodo)
                                   const Text(
                                     'Aplica a productos seleccionados',
                                     style: TextStyle(
-                                        fontSize: 11,
-                                        color:
-                                            AppColors.warning),
+                                      fontSize: 11,
+                                      color: AppColors.warning,
+                                    ),
                                   ),
                               ],
                             ),
                           ),
                           TextButton(
                             onPressed: () => widget.onUse(c.codigo),
-                            child: const Text('Usar',
-                                style: TextStyle(
-                                    fontWeight: FontWeight.bold)),
+                            child: const Text(
+                              'Usar',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
                           ),
                         ],
                       ),

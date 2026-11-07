@@ -26,7 +26,8 @@ android {
         applicationId = "com.fashionstore.fashionstore_mobile"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        // [EXAMEN-2] sqflite_sqlcipher 3.4.1 requiere Android API 21 o superior.
+        minSdk = maxOf(flutter.minSdkVersion, 21)
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

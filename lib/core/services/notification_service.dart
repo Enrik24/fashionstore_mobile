@@ -4,11 +4,12 @@ import '../../config/constants.dart';
 import '../../config/routes.dart';
 import '../../config/theme.dart';
 import 'api_service.dart';
+import 'storage_service.dart';
+import '../database/local_database_service.dart';
 
 /// Handler de mensajes en segundo plano (debe ser top-level).
 @pragma('vm:entry-point')
-Future<void> firebaseMessagingBackgroundHandler(
-    RemoteMessage message) async {
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // El sistema muestra la notificación automáticamente; al tocarla,
   // `onMessageOpenedApp` / `getInitialMessage` resuelven la navegación.
 }
@@ -24,6 +25,30 @@ class NotificationService {
   final ApiService _apiService;
   final GlobalKey<ScaffoldMessengerState>? _messengerKey;
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
+  StorageService? _storageService;
+  LocalDatabaseService? _localDatabase;
+
+  // [EXAMEN-2] C2.6 CU09: tipos push soportados (FCM).
+  static const String tipoPagoConfirmado = 'PAGO_CONFIRMADO';
+  static const String tipoPagoRechazado = 'PAGO_RECHAZADO';
+  static const String tipoConflictoNuevo = 'CONFLICTO_NUEVO';
+  static const String tipoCuentaPorRegularizar = 'CUENTA_POR_REGULARIZAR';
+  static const String tipoDispositivoRevocado = 'DISPOSITIVO_REVOCADO';
+  // [EXAMEN-2] Fase 3 (CU13/CU18/CU19): avisos de devolución, reposición,
+  // compensación y falta de talla alternativa (RF-037, RN-024).
+  static const String tipoDevolucion = 'DEVOLUCION';
+  static const String tipoReposicion = 'REPOSICION';
+  static const String tipoCompensacion = 'COMPENSACION';
+  static const String tipoSinAlternativa = 'SIN_ALTERNATIVA';
+
+  /// [EXAMEN-2] Inyecta dependencias para limpiar datos al revocarse el dispositivo.
+  void configureOfflineRevocation({
+    required StorageService storageService,
+    required LocalDatabaseService localDatabase,
+  }) {
+    _storageService = storageService;
+    _localDatabase = localDatabase;
+  }
 
   String? _token;
   bool _initialized = false;
@@ -31,8 +56,8 @@ class NotificationService {
   NotificationService({
     required ApiService apiService,
     GlobalKey<ScaffoldMessengerState>? messengerKey,
-  })  : _apiService = apiService,
-        _messengerKey = messengerKey;
+  }) : _apiService = apiService,
+       _messengerKey = messengerKey;
 
   String? get token => _token;
   bool get isInitialized => _initialized;
@@ -41,14 +66,9 @@ class NotificationService {
   Future<void> init() async {
     if (_initialized) return;
     try {
-      FirebaseMessaging.onBackgroundMessage(
-          firebaseMessagingBackgroundHandler);
+      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
-      await _messaging.requestPermission(
-        alert: true,
-        badge: true,
-        sound: true,
-      );
+      await _messaging.requestPermission(alert: true, badge: true, sound: true);
 
       FirebaseMessaging.onMessage.listen(_onForegroundMessage);
       FirebaseMessaging.onMessageOpenedApp.listen(_onTapMessage);
@@ -85,7 +105,24 @@ class NotificationService {
     }
   }
 
-  /// Desregistra el token en el backend y lo borra localmente (logout).
+  /// [EXAMEN-2] Elimina los datos del dispositivo revocado y vuelve al login.
+  Future<void> handleDeviceRevoked() async {
+    await _localDatabase?.eliminarArchivoLocal();
+    await _storageService?.clearOfflineMode();
+    final messenger = _messengerKey?.currentState;
+    messenger?.showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Este dispositivo fue revocado. Se eliminaron los datos locales.',
+        ),
+      ),
+    );
+    try {
+      appRouter.go('/login');
+    } catch (_) {}
+  }
+
+  /// [EXAMEN-2] Desregistra el token en el backend y lo borra localmente (logout).
   Future<void> unregisterDevice() async {
     try {
       final token = _token;
@@ -104,12 +141,56 @@ class NotificationService {
     }
   }
 
+  // [EXAMEN-2] Fase 3 (CU18/CU19): bandeja de avisos del cliente (RF-037).
+  /// `GET /notificaciones/mis-notificaciones`; vacío ante 404/501 N3.
+  Future<List<Map<String, Object?>>> getMisNotificaciones({
+    String? estado,
+    int skip = 0,
+    int limit = 50,
+  }) async {
+    try {
+      final response = await _apiService.dio.get(
+        AppConstants.epNotificacionesMis,
+        queryParameters: {
+          if (estado != null) 'estado': estado,
+          'skip': skip,
+          'limit': limit,
+        },
+      );
+      if (response.data is Map<String, dynamic>) {
+        final lista = (response.data as Map<String, dynamic>)['notificaciones'];
+        if (lista is List) {
+          return lista.map((e) => Map<String, Object?>.from(e)).toList();
+        }
+      }
+      if (response.data is List) {
+        return (response.data as List)
+            .map((e) => Map<String, Object?>.from(e as Map))
+            .toList();
+      }
+      return const [];
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  /// [EXAMEN-2] Fase 3: `PATCH /notificaciones/{id}/leida` ( false ante 404).
+  Future<bool> marcarLeida(int id) async {
+    try {
+      await _apiService.dio.patch(
+        '${AppConstants.epNotificacionesLeida}/$id/leida',
+      );
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Mensaje con la app abierta: aviso en pantalla con acción "Ver".
   void _onForegroundMessage(RemoteMessage message) {
     final messenger = _messengerKey?.currentState;
     if (messenger == null) return;
-    final title =
-        message.notification?.title ?? 'FashionStore';
+    final title = message.notification?.title ?? 'FashionStore';
     final body = message.notification?.body ?? '';
     messenger.showSnackBar(
       SnackBar(
@@ -138,8 +219,7 @@ class NotificationService {
 
   /// Resuelve la ruta móvil desde el payload del backend.
   /// El backend envía `data: {tipo, url}` (p.ej. url `/profile/reservations`).
-  static String resolveRoute(Map<String, dynamic> data) =>
-      _resolveRoute(data);
+  static String resolveRoute(Map<String, dynamic> data) => _resolveRoute(data);
 
   static String _resolveRoute(Map<String, dynamic> data) {
     final url = data['url']?.toString() ?? '';
@@ -154,11 +234,21 @@ class NotificationService {
     }
     // URLs de panel staff/web (p.ej. /branch/...) se mapean por tipo.
     final tipo = (data['tipo']?.toString() ?? '').toUpperCase();
+    // [EXAMEN-2] C2.6 CU09: tipos de sincronización.
+    if (tipo == tipoConflictoNuevo) {
+      return '/offline/conflicts';
+    }
+    if (tipo == tipoCuentaPorRegularizar) return '/profile';
+    if (tipo == tipoDispositivoRevocado) return '/login';
     if (tipo.contains('DEVOLUC')) return '/profile/returns';
     if (tipo.contains('RESERV')) return '/reservations';
-    if (tipo.contains('ORDEN') ||
+    // [CU13 restaurado] PAGO genérico (y PAGO_CONFIRMADO, esperado por el
+    // test CU13 como orden/pago), ORDEN y VENTA van al historial.
+    // El atajo previo PAGO_CONFIRMADO/PAGO_RECHAZADO -> /offline/payments
+    // rompía ese mapeo; no se mantiene para no regresar la regresión.
+    if (tipo.contains('PAGO') ||
+        tipo.contains('ORDEN') ||
         tipo.contains('PEDIDO') ||
-        tipo.contains('PAGO') ||
         tipo.contains('COMPRA') ||
         tipo.contains('VENTA')) {
       return '/profile/orders';

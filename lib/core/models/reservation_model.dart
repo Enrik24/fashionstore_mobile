@@ -23,16 +23,20 @@ class BranchModel {
 
   factory BranchModel.fromJson(Map<String, dynamic> json) {
     return BranchModel(
-      id: json['id'] is int ? json['id'] : int.tryParse(json['id'].toString()) ?? 0,
+      id: json['id'] is int
+          ? json['id']
+          : int.tryParse(json['id'].toString()) ?? 0,
       nombre: json['nombre']?.toString() ?? 'Sucursal',
       direccion: json['direccion']?.toString() ?? '',
       telefono: json['telefono']?.toString(),
       latitud: (json['latitud'] is num)
           ? (json['latitud'] as num).toDouble()
-          : double.tryParse(json['latitud']?.toString() ?? '-17.7833') ?? -17.7833,
+          : double.tryParse(json['latitud']?.toString() ?? '-17.7833') ??
+                -17.7833,
       longitud: (json['longitud'] is num)
           ? (json['longitud'] as num).toDouble()
-          : double.tryParse(json['longitud']?.toString() ?? '-63.1821') ?? -63.1821,
+          : double.tryParse(json['longitud']?.toString() ?? '-63.1821') ??
+                -63.1821,
       horarioApertura: json['horario_apertura']?.toString() ?? '09:00',
       horarioCierre: json['horario_cierre']?.toString() ?? '21:00',
       activo: json['activo'] != false,
@@ -82,24 +86,36 @@ class ReservationItemModel {
     // El backend (DetalleReservaResponse) envía la variante en 'variante_producto'
     final Map<String, dynamic>? varianteMap = (json['variante_producto'] is Map)
         ? json['variante_producto'] as Map<String, dynamic>
-        : (json['variante'] is Map ? json['variante'] as Map<String, dynamic> : null);
+        : (json['variante'] is Map
+              ? json['variante'] as Map<String, dynamic>
+              : null);
 
     if (varianteMap != null) {
       final v = varianteMap;
-      t = t ?? (v['talla'] is Map
-          ? (v['talla']['valor']?.toString() ?? v['talla']['nombre']?.toString())
-          : v['talla_nombre']?.toString());
-      c = c ?? (v['color'] is Map ? v['color']['nombre']?.toString() : v['color_nombre']?.toString());
+      t =
+          t ??
+          (v['talla'] is Map
+              ? (v['talla']['valor']?.toString() ??
+                    v['talla']['nombre']?.toString())
+              : v['talla_nombre']?.toString());
+      c =
+          c ??
+          (v['color'] is Map
+              ? v['color']['nombre']?.toString()
+              : v['color_nombre']?.toString());
       if (v['producto'] != null && v['producto'] is Map) {
         prodName = prodName ?? v['producto']['nombre']?.toString();
-        if (v['producto']['imagenes'] is List && (v['producto']['imagenes'] as List).isNotEmpty) {
+        if (v['producto']['imagenes'] is List &&
+            (v['producto']['imagenes'] as List).isNotEmpty) {
           prodImg = prodImg ?? v['producto']['imagenes'][0]?.toString();
         }
       }
     }
 
     return ReservationItemModel(
-      id: json['id'] is int ? json['id'] : int.tryParse(json['id'].toString()) ?? 0,
+      id: json['id'] is int
+          ? json['id']
+          : int.tryParse(json['id'].toString()) ?? 0,
       varianteProductoId: json['variante_producto_id'] is int
           ? json['variante_producto_id']
           : int.tryParse(json['variante_producto_id']?.toString() ?? '0') ?? 0,
@@ -139,6 +155,11 @@ class ReservationModel {
   final String? notas;
   final List<ReservationItemModel> items;
   final DateTime? createdAt;
+  // [EXAMEN-2] Reserva creada sin conexión (CU06).
+  final String? uuidReserva;
+  final bool esOffline;
+  final String estadoSincronizacion;
+  final String? dispositivoId;
 
   ReservationModel({
     required this.id,
@@ -153,6 +174,10 @@ class ReservationModel {
     this.notas,
     this.items = const [],
     this.createdAt,
+    this.uuidReserva,
+    this.esOffline = false,
+    this.estadoSincronizacion = 'PENDIENTE',
+    this.dispositivoId,
   });
 
   bool get isPending => estado.toUpperCase() == 'PENDIENTE';
@@ -166,7 +191,10 @@ class ReservationModel {
     List<ReservationItemModel> itemList = [];
     if (rawItems is List) {
       itemList = rawItems
-          .map((item) => ReservationItemModel.fromJson(item as Map<String, dynamic>))
+          .map(
+            (item) =>
+                ReservationItemModel.fromJson(item as Map<String, dynamic>),
+          )
           .toList();
     }
 
@@ -187,7 +215,9 @@ class ReservationModel {
     }
 
     return ReservationModel(
-      id: json['id'] is int ? json['id'] : int.tryParse(json['id'].toString()) ?? 0,
+      id: json['id'] is int
+          ? json['id']
+          : int.tryParse(json['id'].toString()) ?? 0,
       numeroReserva: json['numero_reserva']?.toString() ?? 'RES-${json['id']}',
       clienteId: json['cliente_id'] is int
           ? json['cliente_id']
@@ -207,6 +237,11 @@ class ReservationModel {
       notas: json['notas']?.toString(),
       items: itemList,
       createdAt: parsedCreated,
+      uuidReserva: json['uuid_reserva']?.toString(),
+      esOffline: json['es_offline'] == true,
+      estadoSincronizacion:
+          json['estado_sincronizacion']?.toString() ?? 'PENDIENTE',
+      dispositivoId: json['dispositivo_id']?.toString(),
     );
   }
 
@@ -223,6 +258,10 @@ class ReservationModel {
       'estado': estado,
       'notas': notas,
       'items': items.map((i) => i.toJson()).toList(),
+      'uuid_reserva': uuidReserva,
+      'es_offline': esOffline,
+      'estado_sincronizacion': estadoSincronizacion,
+      'dispositivo_id': dispositivoId,
     };
   }
 }

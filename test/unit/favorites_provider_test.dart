@@ -31,10 +31,11 @@ class FakeFavoritesService extends FavoritesService {
       clienteId: 1,
       productoId: productoId,
       producto: ProductModel(
-          id: productoId,
-          sku: 'TST',
-          nombre: 'Producto $productoId',
-          precio: 100.0),
+        id: productoId,
+        sku: 'TST',
+        nombre: 'Producto $productoId',
+        precio: 100.0,
+      ),
     );
   }
 

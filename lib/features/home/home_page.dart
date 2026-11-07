@@ -45,18 +45,20 @@ class _HomePageState extends State<HomePage> {
     final isAuth = context.read<AuthProvider>().isAuthenticated;
     if (_wasAuthenticated != null && _wasAuthenticated != isAuth) {
       _wasAuthenticated = isAuth;
-      context
-          .read<RecommendationsProvider>()
-          .load(isAuthenticated: isAuth, refresh: true);
+      context.read<RecommendationsProvider>().load(
+        isAuthenticated: isAuth,
+        refresh: true,
+      );
     }
   }
 
   void _loadRecommendations({bool refresh = false}) {
     final auth = context.read<AuthProvider>();
     _wasAuthenticated = auth.isAuthenticated;
-    context
-        .read<RecommendationsProvider>()
-        .load(isAuthenticated: auth.isAuthenticated, refresh: refresh);
+    context.read<RecommendationsProvider>().load(
+      isAuthenticated: auth.isAuthenticated,
+      refresh: refresh,
+    );
   }
 
   @override
@@ -97,11 +99,16 @@ class _HomePageState extends State<HomePage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.accent.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: AppColors.accent.withOpacity(0.4)),
+                        border: Border.all(
+                          color: AppColors.accent.withOpacity(0.4),
+                        ),
                       ),
                       child: const Text(
                         'Colección Nueva Temporada',
@@ -147,7 +154,13 @@ class _HomePageState extends State<HomePage> {
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text('Ver Catálogo', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                          Text(
+                            'Ver Catálogo',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
                           SizedBox(width: 6),
                           Icon(Icons.arrow_forward_rounded, size: 16),
                         ],
@@ -207,7 +220,9 @@ class _HomePageState extends State<HomePage> {
                         _buildActionCard(
                           context,
                           title: 'Mi Cuenta',
-                          subtitle: user != null ? user.nombre : 'Iniciar sesión',
+                          subtitle: user != null
+                              ? user.nombre
+                              : 'Iniciar sesión',
                           icon: Icons.person_rounded,
                           color: AppColors.info,
                           onTap: () => context.go('/profile'),
@@ -236,8 +251,10 @@ class _HomePageState extends State<HomePage> {
                     ),
                     TextButton(
                       onPressed: () => context.go('/catalog'),
-                      child: const Text('Ver todas',
-                          style: TextStyle(color: AppColors.accent)),
+                      child: const Text(
+                        'Ver todas',
+                        style: TextStyle(color: AppColors.accent),
+                      ),
                     ),
                   ],
                 ),
@@ -251,7 +268,9 @@ class _HomePageState extends State<HomePage> {
                         alignment: Alignment.centerLeft,
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 4),
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: recs.isPersonalized
                                 ? AppColors.accent.withOpacity(0.12)
@@ -301,19 +320,15 @@ class _HomePageState extends State<HomePage> {
               ),
               Consumer<RecommendationsProvider>(
                 builder: (context, recs, _) {
-                  if (recs.message != null &&
-                      recs.message!.isNotEmpty) {
+                  if (recs.message != null && recs.message!.isNotEmpty) {
                     return Padding(
-                      padding:
-                          const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                       child: Text(
                         recs.message!,
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(
-                                color: AppColors.textSecondary,
-                                fontStyle: FontStyle.italic),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.textSecondary,
+                          fontStyle: FontStyle.italic,
+                        ),
                       ),
                     );
                   }
@@ -331,8 +346,7 @@ class _HomePageState extends State<HomePage> {
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         scrollDirection: Axis.horizontal,
                         itemCount: 3,
-                        separatorBuilder: (_, __) =>
-                            const SizedBox(width: 14),
+                        separatorBuilder: (_, __) => const SizedBox(width: 14),
                         itemBuilder: (_, __) => const SizedBox(
                           width: 160,
                           child: SkeletonProductCard(),
@@ -343,40 +357,34 @@ class _HomePageState extends State<HomePage> {
 
                   if (recs.products.isEmpty) {
                     return Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
                           color: AppColors.surface,
                           borderRadius: BorderRadius.circular(16),
-                          border:
-                              Border.all(color: AppColors.border),
+                          border: Border.all(color: AppColors.border),
                         ),
                         child: Column(
                           children: [
                             const Icon(
-                                Icons.recommend_outlined,
-                                size: 40,
-                                color: AppColors.textMuted),
+                              Icons.recommend_outlined,
+                              size: 40,
+                              color: AppColors.textMuted,
+                            ),
                             const SizedBox(height: 8),
                             Text(
                               recs.errorMessage ??
                                   'No hay recomendaciones por ahora',
                               textAlign: TextAlign.center,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium,
+                              style: Theme.of(context).textTheme.bodyMedium,
                             ),
                             const SizedBox(height: 12),
                             OutlinedButton.icon(
                               onPressed: () =>
-                                  _loadRecommendations(
-                                      refresh: true),
-                              icon: const Icon(Icons.refresh,
-                                  size: 16),
-                              label:
-                                  const Text('Reintentar'),
+                                  _loadRecommendations(refresh: true),
+                              icon: const Icon(Icons.refresh, size: 16),
+                              label: const Text('Reintentar'),
                             ),
                           ],
                         ),
@@ -387,17 +395,14 @@ class _HomePageState extends State<HomePage> {
                   return SizedBox(
                     height: 250,
                     child: ListView.separated(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 16),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
                       scrollDirection: Axis.horizontal,
                       itemCount: recs.products.length,
-                      separatorBuilder: (_, __) =>
-                          const SizedBox(width: 14),
+                      separatorBuilder: (_, __) => const SizedBox(width: 14),
                       itemBuilder: (context, index) {
                         return SizedBox(
                           width: 165,
-                          child: ProductCard(
-                              product: recs.products[index]),
+                          child: ProductCard(product: recs.products[index]),
                         );
                       },
                     ),
@@ -427,7 +432,11 @@ class _HomePageState extends State<HomePage> {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.storefront_rounded, color: AppColors.accent, size: 22),
+                        const Icon(
+                          Icons.storefront_rounded,
+                          color: AppColors.accent,
+                          size: 22,
+                        ),
                         const SizedBox(width: 8),
                         Text(
                           'Sucursales y Disponibilidad',

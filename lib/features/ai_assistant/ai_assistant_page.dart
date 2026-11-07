@@ -11,7 +11,6 @@ import '../../core/providers/cart_provider.dart';
 import '../../core/services/catalog_service.dart';
 import '../../core/widgets/custom_app_bar.dart';
 import 'widgets/chat_bubble.dart';
-import 'widgets/recommendations_section.dart';
 
 class AiAssistantPage extends StatefulWidget {
   const AiAssistantPage({super.key});
@@ -73,7 +72,9 @@ class _AiAssistantPageState extends State<AiAssistantPage> {
     if (!_speechAvailable) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Reconocimiento de voz no disponible o permisos no concedidos.'),
+          content: Text(
+            'Reconocimiento de voz no disponible o permisos no concedidos.',
+          ),
           backgroundColor: AppColors.warning,
         ),
       );
@@ -152,25 +153,35 @@ class _AiAssistantPageState extends State<AiAssistantPage> {
       } else {
         // Buscar el último look con productos en el historial
         final lastMsgWithProds = aiProvider.chatMessages.reversed.firstWhere(
-          (m) => m.productosMencionados != null && m.productosMencionados!.isNotEmpty,
+          (m) =>
+              m.productosMencionados != null &&
+              m.productosMencionados!.isNotEmpty,
           orElse: () => aiProvider.chatMessages.first,
         );
         if (lastMsgWithProds.productosMencionados != null &&
             lastMsgWithProds.productosMencionados!.isNotEmpty) {
-          await _addOutfitToCart(lastMsgWithProds.productosMencionados!, silent: false);
+          await _addOutfitToCart(
+            lastMsgWithProds.productosMencionados!,
+            silent: false,
+          );
         }
       }
     }
   }
 
   /// Agrega todas las prendas de un outfit sugerido al carrito
-  Future<void> _addOutfitToCart(List<dynamic> products, {bool silent = false}) async {
+  Future<void> _addOutfitToCart(
+    List<dynamic> products, {
+    bool silent = false,
+  }) async {
     final auth = context.read<AuthProvider>();
     if (!auth.isAuthenticated) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Inicia sesión para añadir productos a tu carrito'),
+          content: const Text(
+            'Inicia sesión para añadir productos a tu carrito',
+          ),
           action: SnackBarAction(
             label: 'Ingresar',
             textColor: Colors.white,
@@ -201,7 +212,9 @@ class _AiAssistantPageState extends State<AiAssistantPage> {
       }
 
       final rawId = p['id'] ?? p['producto_id'];
-      final int? prodId = rawId is int ? rawId : (rawId != null ? int.tryParse(rawId.toString()) : null);
+      final int? prodId = rawId is int
+          ? rawId
+          : (rawId != null ? int.tryParse(rawId.toString()) : null);
 
       if (variantId == null && prodId != null) {
         try {
@@ -213,7 +226,10 @@ class _AiAssistantPageState extends State<AiAssistantPage> {
       }
 
       if (variantId != null) {
-        final ok = await cartProvider.addToCart(variantId: variantId, quantity: 1);
+        final ok = await cartProvider.addToCart(
+          variantId: variantId,
+          quantity: 1,
+        );
         if (ok) addedCount++;
       }
     }
@@ -224,7 +240,9 @@ class _AiAssistantPageState extends State<AiAssistantPage> {
     if (addedCount > 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('¡Se añadieron $addedCount prendas de tu look al carrito! 🛍️'),
+          content: Text(
+            '¡Se añadieron $addedCount prendas de tu look al carrito! 🛍️',
+          ),
           backgroundColor: AppColors.success,
           duration: const Duration(seconds: 3),
           action: SnackBarAction(
@@ -244,7 +262,9 @@ class _AiAssistantPageState extends State<AiAssistantPage> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('No se pudieron agregar las prendas. Revisa la disponibilidad.'),
+          content: Text(
+            'No se pudieron agregar las prendas. Revisa la disponibilidad.',
+          ),
           backgroundColor: AppColors.error,
         ),
       );
@@ -257,7 +277,9 @@ class _AiAssistantPageState extends State<AiAssistantPage> {
     if (!auth.isAuthenticated) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Inicia sesión para añadir productos a tu carrito'),
+          content: const Text(
+            'Inicia sesión para añadir productos a tu carrito',
+          ),
           action: SnackBarAction(
             label: 'Ingresar',
             textColor: Colors.white,
@@ -280,7 +302,9 @@ class _AiAssistantPageState extends State<AiAssistantPage> {
     }
 
     final rawId = product['id'] ?? product['producto_id'];
-    final int? prodId = rawId is int ? rawId : (rawId != null ? int.tryParse(rawId.toString()) : null);
+    final int? prodId = rawId is int
+        ? rawId
+        : (rawId != null ? int.tryParse(rawId.toString()) : null);
 
     final cartProvider = context.read<CartProvider>();
     final catalogService = context.read<CatalogService>();
@@ -334,7 +358,6 @@ class _AiAssistantPageState extends State<AiAssistantPage> {
   @override
   Widget build(BuildContext context) {
     final aiProvider = context.watch<AiProvider>();
-    final auth = context.watch<AuthProvider>();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -350,7 +373,9 @@ class _AiAssistantPageState extends State<AiAssistantPage> {
           ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert, color: AppColors.primary),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             onSelected: (val) {
               if (val == 'clear') {
                 aiProvider.clearChat();
@@ -364,12 +389,18 @@ class _AiAssistantPageState extends State<AiAssistantPage> {
                 child: Row(
                   children: [
                     Icon(
-                      _showRecommendations ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                      _showRecommendations
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
                       size: 20,
                       color: AppColors.primary,
                     ),
                     const SizedBox(width: 8),
-                    Text(_showRecommendations ? 'Ocultar sugerencias' : 'Ver sugerencias'),
+                    Text(
+                      _showRecommendations
+                          ? 'Ocultar sugerencias'
+                          : 'Ver sugerencias',
+                    ),
                   ],
                 ),
               ),
@@ -377,7 +408,11 @@ class _AiAssistantPageState extends State<AiAssistantPage> {
                 value: 'clear',
                 child: Row(
                   children: [
-                    Icon(Icons.cleaning_services_outlined, size: 20, color: AppColors.primary),
+                    Icon(
+                      Icons.cleaning_services_outlined,
+                      size: 20,
+                      color: AppColors.primary,
+                    ),
                     SizedBox(width: 8),
                     Text('Reiniciar conversación'),
                   ],
@@ -496,10 +531,15 @@ class _AiAssistantPageState extends State<AiAssistantPage> {
                   return ActionChip(
                     backgroundColor: Colors.white,
                     side: BorderSide(color: AppColors.accent.withOpacity(0.3)),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
                     label: Text(
                       suggestion,
-                      style: GoogleFonts.inter(fontSize: 12, color: AppColors.textDark),
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: AppColors.textDark,
+                      ),
                     ),
                     onPressed: () => _handleSend(suggestion),
                   );
@@ -539,7 +579,9 @@ class _AiAssistantPageState extends State<AiAssistantPage> {
           // Voice Mic Button
           Container(
             decoration: BoxDecoration(
-              color: _isListening ? Colors.red.shade50 : AppColors.surfaceVariant.withOpacity(0.7),
+              color: _isListening
+                  ? Colors.red.shade50
+                  : AppColors.surfaceVariant.withOpacity(0.7),
               shape: BoxShape.circle,
               border: Border.all(
                 color: _isListening ? Colors.red : Colors.transparent,
@@ -565,17 +607,25 @@ class _AiAssistantPageState extends State<AiAssistantPage> {
               decoration: BoxDecoration(
                 color: AppColors.background,
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: _isListening ? Colors.red.shade300 : Colors.grey.shade200),
+                border: Border.all(
+                  color: _isListening
+                      ? Colors.red.shade300
+                      : Colors.grey.shade200,
+                ),
               ),
               child: TextField(
                 controller: _textController,
                 textInputAction: TextInputAction.send,
                 onSubmitted: (_) => _handleSend(),
                 decoration: InputDecoration(
-                  hintText: _isListening ? 'Escuchando tu voz...' : 'Pregúntale a tu estilista IA...',
+                  hintText: _isListening
+                      ? 'Escuchando tu voz...'
+                      : 'Pregúntale a tu estilista IA...',
                   hintStyle: GoogleFonts.inter(
                     fontSize: 13,
-                    color: _isListening ? Colors.red.shade400 : AppColors.textLight,
+                    color: _isListening
+                        ? Colors.red.shade400
+                        : AppColors.textLight,
                   ),
                   border: InputBorder.none,
                   isDense: true,
@@ -601,9 +651,16 @@ class _AiAssistantPageState extends State<AiAssistantPage> {
                   ? const SizedBox(
                       width: 20,
                       height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
                     )
-                  : const Icon(Icons.send_rounded, color: Colors.white, size: 20),
+                  : const Icon(
+                      Icons.send_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
               onPressed: isChatLoading ? null : () => _handleSend(),
             ),
           ),

@@ -5,12 +5,17 @@ import '../models/order_model.dart';
 import '../models/cart_model.dart';
 import '../models/reservation_model.dart';
 import '../services/order_service.dart';
+import '../services/cart_service.dart';
 
 class CheckoutProvider extends ChangeNotifier {
   final OrderService _orderService;
+  final CartService? _cartService;
 
-  CheckoutProvider({required OrderService orderService})
-      : _orderService = orderService;
+  CheckoutProvider({
+    required OrderService orderService,
+    CartService? cartService,
+  }) : _orderService = orderService,
+       _cartService = cartService;
 
   // Delivery state
   String _deliveryType = 'SHIPPING'; // 'SHIPPING' | 'PICKUP'
@@ -93,9 +98,7 @@ class CheckoutProvider extends ChangeNotifier {
     }
   }
 
-  Future<OrderModel?> createOrder({
-    List<CartItemModel>? items,
-  }) async {
+  Future<OrderModel?> createOrder({List<CartItemModel>? items}) async {
     if (_deliveryType == 'SHIPPING' && _shippingAddress.trim().isEmpty) {
       _errorMessage = 'Por favor ingresa la dirección de entrega.';
       notifyListeners();
@@ -116,22 +119,60 @@ class CheckoutProvider extends ChangeNotifier {
       List<Map<String, dynamic>>? itemPayload;
       if (items != null && items.isNotEmpty) {
         itemPayload = items
-            .map((i) => {
-                  'variante_producto_id': i.varianteProductoId,
-                  'cantidad': i.cantidad,
-                })
+            .map(
+              (i) => {
+                'variante_producto_id': i.varianteProductoId,
+                'cantidad': i.cantidad,
+              },
+            )
             .toList();
       }
 
-      final order = await _orderService.crearOrden(
-        sucursalId: _deliveryType == 'PICKUP' ? _selectedBranch?.id : null,
-        direccionEnvio: _deliveryType == 'SHIPPING' ? _shippingAddress.trim() : null,
-        ciudadEnvio: _deliveryType == 'SHIPPING' ? _city.trim() : null,
-        telefonoContacto: _phoneNumber.trim(),
-        metodoPago: _paymentMethod,
-        tipo: 'DIGITAL',
-        items: itemPayload,
-      );
+      OrderModel order;
+      try {
+        order = await _orderService.crearOrden(
+          sucursalId: _deliveryType == 'PICKUP' ? _selectedBranch?.id : null,
+          direccionEnvio: _deliveryType == 'SHIPPING'
+              ? _shippingAddress.trim()
+              : null,
+          ciudadEnvio: _deliveryType == 'SHIPPING' ? _city.trim() : null,
+          telefonoContacto: _phoneNumber.trim(),
+          metodoPago: _paymentMethod,
+          tipo: 'DIGITAL',
+          items: itemPayload,
+        );
+      } catch (error) {
+        final cartService = _cartService;
+        if (cartService == null || items == null || items.isEmpty) rethrow;
+        final conversion = await cartService.convertirEnPagoDiferido(
+          sucursalId: _deliveryType == 'PICKUP' ? _selectedBranch?.id : null,
+          direccionEnvio: _deliveryType == 'SHIPPING'
+              ? _shippingAddress.trim()
+              : null,
+          clienteId: null,
+        );
+        order = OrderModel(
+          id: 0,
+          numeroOrden: 'OFFLINE-${conversion.uuidOrden.substring(0, 8)}',
+          clienteId: 0,
+          total: conversion.total,
+          subtotal: conversion.total,
+          estado: 'PENDIENTE_PAGO_DIFERIDO',
+          metodoPago: _paymentMethod,
+          uuidOrden: conversion.uuidOrden,
+          origen: 'OFFLINE',
+          esOffline: true,
+          estadoSincronizacion: 'PENDIENTE',
+          fechaLimitePago: DateTime.now().toUtc().add(
+            const Duration(hours: 24),
+          ),
+          expiraEn: DateTime.now().toUtc().add(const Duration(hours: 24)),
+        );
+        _lastCreatedOrder = order;
+        _isProcessing = false;
+        notifyListeners();
+        return order;
+      }
 
       _lastCreatedOrder = order;
 
@@ -164,8 +205,9 @@ class CheckoutProvider extends ChangeNotifier {
         successUrl: stripeAppSuccessUrl(orderId),
         cancelUrl: stripeAppCancelUrl(orderId),
       );
-      _lastStripeSessionId =
-          session.sessionId.isNotEmpty ? session.sessionId : null;
+      _lastStripeSessionId = session.sessionId.isNotEmpty
+          ? session.sessionId
+          : null;
       _lastStripeOrderId = orderId;
       notifyListeners();
       if (session.checkoutUrl.isEmpty || _lastStripeSessionId == null) {
@@ -199,16 +241,15 @@ class CheckoutProvider extends ChangeNotifier {
         cancelUrl: cancelUrl,
       );
       // Guardar la sesión para confirmar el pago al volver del navegador.
-      _lastStripeSessionId = session.sessionId.isNotEmpty ? session.sessionId : null;
+      _lastStripeSessionId = session.sessionId.isNotEmpty
+          ? session.sessionId
+          : null;
       _lastStripeOrderId = orderId;
       notifyListeners();
       if (session.checkoutUrl.isNotEmpty) {
         final uri = Uri.parse(session.checkoutUrl);
         if (await canLaunchUrl(uri)) {
-          return await launchUrl(
-            uri,
-            mode: LaunchMode.externalApplication,
-          );
+          return await launchUrl(uri, mode: LaunchMode.externalApplication);
         }
       }
       return false;
@@ -258,16 +299,15 @@ class CheckoutProvider extends ChangeNotifier {
         returnUrl: returnUrl,
         cancelUrl: cancelUrl,
       );
-      _lastPayPalOrderId = payPalOrder.orderId.isNotEmpty ? payPalOrder.orderId : null;
+      _lastPayPalOrderId = payPalOrder.orderId.isNotEmpty
+          ? payPalOrder.orderId
+          : null;
       _lastPayPalInternalOrderId = orderId;
       notifyListeners();
       if (payPalOrder.approveUrl.isNotEmpty) {
         final uri = Uri.parse(payPalOrder.approveUrl);
         if (await canLaunchUrl(uri)) {
-          return await launchUrl(
-            uri,
-            mode: LaunchMode.externalApplication,
-          );
+          return await launchUrl(uri, mode: LaunchMode.externalApplication);
         }
       }
       return false;
@@ -279,7 +319,10 @@ class CheckoutProvider extends ChangeNotifier {
   }
 
   /// Captura el pago de PayPal al volver del navegador externo.
-  Future<bool> confirmarPagoPayPal({String? paypalOrderId, int? orderId}) async {
+  Future<bool> confirmarPagoPayPal({
+    String? paypalOrderId,
+    int? orderId,
+  }) async {
     final pid = paypalOrderId ?? _lastPayPalOrderId;
     final oid = orderId ?? _lastPayPalInternalOrderId ?? _lastCreatedOrder?.id;
     if (pid == null || pid.isEmpty || oid == null) return false;

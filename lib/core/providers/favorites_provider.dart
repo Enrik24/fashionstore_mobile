@@ -11,7 +11,7 @@ class FavoritesProvider extends ChangeNotifier {
   final FavoritesService _service;
 
   FavoritesProvider({required FavoritesService favoritesService})
-      : _service = favoritesService;
+    : _service = favoritesService;
 
   Set<int> _favoriteIds = {};
   List<FavoriteModel> _favorites = [];
@@ -21,7 +21,8 @@ class FavoritesProvider extends ChangeNotifier {
 
   Set<int> get favoriteIds => _favoriteIds;
   List<FavoriteModel> get favorites => _favorites;
-  int get count => _favorites.isNotEmpty ? _favorites.length : _favoriteIds.length;
+  int get count =>
+      _favorites.isNotEmpty ? _favorites.length : _favoriteIds.length;
   bool get isLoading => _isLoading;
   bool get isToggling => _isToggling;
   String? get errorMessage => _errorMessage;

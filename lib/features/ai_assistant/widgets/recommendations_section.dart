@@ -74,7 +74,11 @@ class RecommendationsSection extends StatelessWidget {
                       color: AppColors.accent.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(Icons.auto_awesome, color: AppColors.accent, size: 18),
+                    child: const Icon(
+                      Icons.auto_awesome,
+                      color: AppColors.accent,
+                      size: 18,
+                    ),
                   ),
                   const SizedBox(width: 8),
                   Text(
@@ -88,13 +92,18 @@ class RecommendationsSection extends StatelessWidget {
                 ],
               ),
               IconButton(
-                icon: const Icon(Icons.refresh, size: 20, color: AppColors.textLight),
+                icon: const Icon(
+                  Icons.refresh,
+                  size: 20,
+                  color: AppColors.textLight,
+                ),
                 onPressed: onRefresh,
                 tooltip: 'Actualizar sugerencias',
               ),
             ],
           ),
-          if (recs.estiloDetectado != null && recs.estiloDetectado!.isNotEmpty) ...[
+          if (recs.estiloDetectado != null &&
+              recs.estiloDetectado!.isNotEmpty) ...[
             const SizedBox(height: 6),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -142,14 +151,16 @@ class RecommendationsSection extends StatelessWidget {
   }
 
   /// Guarda o quita una recomendación de favoritos (CU21/CU25).
-  Future<void> _toggleFavorite(BuildContext context,
-      RecomendacionItem item, bool isFav) async {
+  Future<void> _toggleFavorite(
+    BuildContext context,
+    RecomendacionItem item,
+    bool isFav,
+  ) async {
     final auth = context.read<AuthProvider>();
     if (!auth.isAuthenticated) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content:
-              const Text('Inicia sesión para guardar tus favoritos'),
+          content: const Text('Inicia sesión para guardar tus favoritos'),
           action: SnackBarAction(
             label: 'Ingresar',
             textColor: Colors.white,
@@ -174,7 +185,8 @@ class RecommendationsSection extends StatelessWidget {
     }
   }
 
-  Widget _buildProductCard(BuildContext context, RecomendacionItem item) {    return InkWell(
+  Widget _buildProductCard(BuildContext context, RecomendacionItem item) {
+    return InkWell(
       onTap: () => context.push('/catalog/${item.productoId}'),
       borderRadius: BorderRadius.circular(16),
       child: Container(
@@ -191,20 +203,31 @@ class RecommendationsSection extends StatelessWidget {
               child: Stack(
                 children: [
                   ClipRRect(
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(16),
+                    ),
                     child: SizedBox(
                       width: double.infinity,
                       height: double.infinity,
-                      child: item.imagenUrl != null && item.imagenUrl!.isNotEmpty
+                      child:
+                          item.imagenUrl != null && item.imagenUrl!.isNotEmpty
                           ? CachedNetworkImage(
                               imageUrl: item.imagenUrl!,
                               fit: BoxFit.cover,
                               errorWidget: (_, __, ___) => const Center(
-                                child: Icon(Icons.checkroom, color: AppColors.accent, size: 28),
+                                child: Icon(
+                                  Icons.checkroom,
+                                  color: AppColors.accent,
+                                  size: 28,
+                                ),
                               ),
                             )
                           : const Center(
-                              child: Icon(Icons.checkroom, color: AppColors.accent, size: 28),
+                              child: Icon(
+                                Icons.checkroom,
+                                color: AppColors.accent,
+                                size: 28,
+                              ),
                             ),
                     ),
                   ),
@@ -213,7 +236,9 @@ class RecommendationsSection extends StatelessWidget {
                     right: 4,
                     child: InkWell(
                       onTap: () {
-                        context.push('/ar-fitting?productId=${item.productoId}');
+                        context.push(
+                          '/ar-fitting?productId=${item.productoId}',
+                        );
                       },
                       child: Container(
                         padding: const EdgeInsets.all(4),
@@ -221,7 +246,11 @@ class RecommendationsSection extends StatelessWidget {
                           color: Colors.white.withOpacity(0.9),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.accessibility_new, size: 14, color: AppColors.accent),
+                        child: const Icon(
+                          Icons.accessibility_new,
+                          size: 14,
+                          color: AppColors.accent,
+                        ),
                       ),
                     ),
                   ),
@@ -231,11 +260,9 @@ class RecommendationsSection extends StatelessWidget {
                     left: 4,
                     child: Consumer<FavoritesProvider>(
                       builder: (context, favs, _) {
-                        final isFav =
-                            favs.isFavorite(item.productoId);
+                        final isFav = favs.isFavorite(item.productoId);
                         return InkWell(
-                          onTap: () =>
-                              _toggleFavorite(context, item, isFav),
+                          onTap: () => _toggleFavorite(context, item, isFav),
                           child: Container(
                             padding: const EdgeInsets.all(4),
                             decoration: BoxDecoration(
@@ -243,9 +270,7 @@ class RecommendationsSection extends StatelessWidget {
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
-                              isFav
-                                  ? Icons.favorite
-                                  : Icons.favorite_border,
+                              isFav ? Icons.favorite : Icons.favorite_border,
                               size: 14,
                               color: isFav
                                   ? AppColors.accent

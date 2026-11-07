@@ -21,10 +21,7 @@ import '../returns/request_return_page.dart' show kPlazoDevolucionDias;
 class OrderDetailPage extends StatefulWidget {
   final int orderId;
 
-  const OrderDetailPage({
-    super.key,
-    required this.orderId,
-  });
+  const OrderDetailPage({super.key, required this.orderId});
 
   @override
   State<OrderDetailPage> createState() => _OrderDetailPageState();
@@ -103,8 +100,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     if (!metodo.contains('STRIPE') && !metodo.contains('PAYPAL')) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-              'Este método de pago se completa en tienda o con QR'),
+          content: Text('Este método de pago se completa en tienda o con QR'),
         ),
       );
       return;
@@ -120,8 +116,9 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       if (!ok) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(checkout.errorMessage ??
-                'No se pudo reintentar el pago'),
+            content: Text(
+              checkout.errorMessage ?? 'No se pudo reintentar el pago',
+            ),
             backgroundColor: AppColors.error,
           ),
         );
@@ -178,8 +175,8 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       final orderService = OrderService(apiService: context.read<ApiService>());
       final bytes = await orderService.descargarComprobantePdf(widget.orderId);
       final dir = await getTemporaryDirectory();
-      final numero = _comprobante?.numero
-              .replaceAll(RegExp(r'[^A-Za-z0-9_-]'), '_') ??
+      final numero =
+          _comprobante?.numero.replaceAll(RegExp(r'[^A-Za-z0-9_-]'), '_') ??
           'orden_${widget.orderId}';
       final file = File('${dir.path}/comprobante_$numero.pdf');
       await file.writeAsBytes(bytes, flush: true);
@@ -188,7 +185,8 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-                'PDF guardado pero no se pudo abrir: ${result.message} (${file.path})'),
+              'PDF guardado pero no se pudo abrir: ${result.message} (${file.path})',
+            ),
             backgroundColor: AppColors.warning,
           ),
         );
@@ -218,7 +216,8 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     }.contains(order.estado.toUpperCase());
   }
 
-  Color _getStatusColor(String status) {    switch (status.toUpperCase()) {
+  Color _getStatusColor(String status) {
+    switch (status.toUpperCase()) {
       case 'PAGADO':
       case 'COMPLETADO':
         return AppColors.success;
@@ -242,55 +241,61 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
         showBackButton: true,
       ),
       body: _isLoading && _order == null
-          ? const Center(child: CircularProgressIndicator(color: AppColors.accent))
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.accent),
+            )
           : _error != null && _order == null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.error_outline, size: 60, color: AppColors.error),
-                        const SizedBox(height: 12),
-                        Text(_error!, textAlign: TextAlign.center),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: _loadDetail,
-                          child: const Text('Reintentar'),
-                        ),
-                      ],
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      size: 60,
+                      color: AppColors.error,
                     ),
-                  ),
-                )
-              : RefreshIndicator(
-                  color: AppColors.accent,
-                  onRefresh: _loadDetail,
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildStatusHeader(_order!, dateFormat),
-                        const SizedBox(height: 20),
-                        if (!_order!.isPaid && !_order!.isCancelled)
-                          _buildPaymentSection(_order!),
-                        if (!_order!.isPaid && !_order!.isCancelled)
-                          const SizedBox(height: 20),
-                        _buildItemsSection(_order!),
-                        const SizedBox(height: 20),
-                        _buildSummaryCard(_order!),
-                        const SizedBox(height: 20),
-                        _buildComprobanteSection(_order!),
-                        const SizedBox(height: 20),
-                        _buildShippingInfo(_order!),
-                        const SizedBox(height: 20),
-                        _buildReturnAction(_order!),
-                        const SizedBox(height: 32),
-                      ],
+                    const SizedBox(height: 12),
+                    Text(_error!, textAlign: TextAlign.center),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: _loadDetail,
+                      child: const Text('Reintentar'),
                     ),
-                  ),
+                  ],
                 ),
+              ),
+            )
+          : RefreshIndicator(
+              color: AppColors.accent,
+              onRefresh: _loadDetail,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildStatusHeader(_order!, dateFormat),
+                    const SizedBox(height: 20),
+                    if (!_order!.isPaid && !_order!.isCancelled)
+                      _buildPaymentSection(_order!),
+                    if (!_order!.isPaid && !_order!.isCancelled)
+                      const SizedBox(height: 20),
+                    _buildItemsSection(_order!),
+                    const SizedBox(height: 20),
+                    _buildSummaryCard(_order!),
+                    const SizedBox(height: 20),
+                    _buildComprobanteSection(_order!),
+                    const SizedBox(height: 20),
+                    _buildShippingInfo(_order!),
+                    const SizedBox(height: 20),
+                    _buildReturnAction(_order!),
+                    const SizedBox(height: 32),
+                  ],
+                ),
+              ),
+            ),
     );
   }
 
@@ -324,7 +329,10 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: statusColor.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(12),
@@ -344,19 +352,35 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           const SizedBox(height: 10),
           Row(
             children: [
-              const Icon(Icons.calendar_today_outlined, size: 14, color: AppColors.textLight),
+              const Icon(
+                Icons.calendar_today_outlined,
+                size: 14,
+                color: AppColors.textLight,
+              ),
               const SizedBox(width: 6),
               Text(
-                order.createdAt != null ? dateFormat.format(order.createdAt!) : 'N/A',
-                style: GoogleFonts.inter(fontSize: 12, color: AppColors.textLight),
+                order.createdAt != null
+                    ? dateFormat.format(order.createdAt!)
+                    : 'N/A',
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  color: AppColors.textLight,
+                ),
               ),
               if (order.metodoPago != null) ...[
                 const SizedBox(width: 16),
-                const Icon(Icons.payment_outlined, size: 14, color: AppColors.textLight),
+                const Icon(
+                  Icons.payment_outlined,
+                  size: 14,
+                  color: AppColors.textLight,
+                ),
                 const SizedBox(width: 6),
                 Text(
                   order.metodoPago!,
-                  style: GoogleFonts.inter(fontSize: 12, color: AppColors.textLight),
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: AppColors.textLight,
+                  ),
                 ),
               ],
             ],
@@ -392,8 +416,9 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             ),
           ),
           const SizedBox(height: 12),
-          ...order.items.map((item) => _buildItemRow(
-              item, _orderAllowsReview(order))),
+          ...order.items.map(
+            (item) => _buildItemRow(item, _orderAllowsReview(order)),
+          ),
         ],
       ),
     );
@@ -409,7 +434,8 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             child: SizedBox(
               width: 50,
               height: 50,
-              child: item.productoImagen != null && item.productoImagen!.isNotEmpty
+              child:
+                  item.productoImagen != null && item.productoImagen!.isNotEmpty
                   ? CachedNetworkImage(
                       imageUrl: item.productoImagen!,
                       fit: BoxFit.cover,
@@ -425,14 +451,20 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
               children: [
                 Text(
                   item.productoNombre,
-                  style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13),
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
                 Text(
                   '${item.cantidad}x  Bs. ${item.precioUnitario.toStringAsFixed(2)}  ${item.talla != null ? '• Talla ${item.talla}' : ''}',
-                  style: GoogleFonts.inter(fontSize: 11, color: AppColors.textLight),
+                  style: GoogleFonts.inter(
+                    fontSize: 11,
+                    color: AppColors.textLight,
+                  ),
                 ),
                 // Botón Valorar (CU26): abre el detalle con la sección de valoraciones.
                 if (allowsReview && item.productoId > 0)
@@ -441,19 +473,26 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                     child: TextButton.icon(
                       onPressed: () =>
                           context.push('/catalog/${item.productoId}'),
-                      icon: const Icon(Icons.star_outline,
-                          size: 14, color: AppColors.accent),
-                      label: const Text('Valorar',
-                          style: TextStyle(
-                              fontSize: 12,
-                              color: AppColors.accent,
-                              fontWeight: FontWeight.bold)),
+                      icon: const Icon(
+                        Icons.star_outline,
+                        size: 14,
+                        color: AppColors.accent,
+                      ),
+                      label: const Text(
+                        'Valorar',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.accent,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       style: TextButton.styleFrom(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 4, vertical: 0),
+                          horizontal: 4,
+                          vertical: 0,
+                        ),
                         minimumSize: Size.zero,
-                        tapTargetSize:
-                            MaterialTapTargetSize.shrinkWrap,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
                     ),
                   ),
@@ -495,12 +534,20 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             ),
           ),
           const SizedBox(height: 12),
-          _buildSummaryRow('Subtotal', 'Bs. ${order.subtotal.toStringAsFixed(2)}'),
+          _buildSummaryRow(
+            'Subtotal',
+            'Bs. ${order.subtotal.toStringAsFixed(2)}',
+          ),
           if (order.costoEnvio > 0)
-            _buildSummaryRow('Envío', 'Bs. ${order.costoEnvio.toStringAsFixed(2)}'),
+            _buildSummaryRow(
+              'Envío',
+              'Bs. ${order.costoEnvio.toStringAsFixed(2)}',
+            ),
           if (order.impuestos > 0)
             _buildSummaryRow(
-                'Impuestos', 'Bs. ${order.impuestos.toStringAsFixed(2)}'),
+              'Impuestos',
+              'Bs. ${order.impuestos.toStringAsFixed(2)}',
+            ),
           if (order.descuento > 0)
             _buildSummaryRow(
               'Descuento',
@@ -513,7 +560,10 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             children: [
               Text(
                 'Total Pagado',
-                style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.bold),
+                style: GoogleFonts.inter(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               Text(
                 'Bs. ${order.total.toStringAsFixed(2)}',
@@ -530,13 +580,23 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     );
   }
 
-  Widget _buildSummaryRow(String label, String value, {bool isDiscount = false}) {
+  Widget _buildSummaryRow(
+    String label,
+    String value, {
+    bool isDiscount = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: GoogleFonts.inter(fontSize: 13, color: AppColors.textSecondary)),
+          Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 13,
+              color: AppColors.textSecondary,
+            ),
+          ),
           Text(
             value,
             style: GoogleFonts.inter(
@@ -553,9 +613,9 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
   /// Botón "Solicitar devolución/cambio" (CU28): visible solo dentro del plazo.
   Widget _buildReturnAction(OrderModel order) {
     final created = order.createdAt;
-    final withinPlazo = created == null ||
-        DateTime.now().difference(created).inDays <=
-            kPlazoDevolucionDias;
+    final withinPlazo =
+        created == null ||
+        DateTime.now().difference(created).inDays <= kPlazoDevolucionDias;
 
     if (!withinPlazo) {
       return Container(
@@ -566,15 +626,19 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
         ),
         child: Row(
           children: [
-            const Icon(Icons.info_outline,
-                size: 20, color: AppColors.textMuted),
+            const Icon(
+              Icons.info_outline,
+              size: 20,
+              color: AppColors.textMuted,
+            ),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
                 'Esta orden superó el plazo de $kPlazoDevolucionDias días para devoluciones.',
                 style: GoogleFonts.inter(
-                    fontSize: 12,
-                    color: AppColors.textSecondary),
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                ),
               ),
             ),
           ],
@@ -595,8 +659,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     return SizedBox(
       width: double.infinity,
       child: OutlinedButton.icon(
-        onPressed: () =>
-            context.push('/profile/orders/${order.id}/return'),
+        onPressed: () => context.push('/profile/orders/${order.id}/return'),
         icon: const Icon(Icons.assignment_return_outlined, size: 18),
         label: const Text('Solicitar devolución o cambio'),
         style: OutlinedButton.styleFrom(
@@ -629,8 +692,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     }
 
     final metodo = (order.metodoPago ?? '').toUpperCase();
-    final retryable =
-        metodo.contains('STRIPE') || metodo.contains('PAYPAL');
+    final retryable = metodo.contains('STRIPE') || metodo.contains('PAYPAL');
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -650,8 +712,11 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
         children: [
           Row(
             children: [
-              const Icon(Icons.payment_outlined,
-                  color: AppColors.accent, size: 20),
+              const Icon(
+                Icons.payment_outlined,
+                color: AppColors.accent,
+                size: 20,
+              ),
               const SizedBox(width: 8),
               Text(
                 'Estado del pago',
@@ -663,11 +728,13 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
               ),
               const Spacer(),
               IconButton(
-                icon: const Icon(Icons.refresh,
-                    size: 18, color: AppColors.textSecondary),
+                icon: const Icon(
+                  Icons.refresh,
+                  size: 18,
+                  color: AppColors.textSecondary,
+                ),
                 tooltip: 'Verificar estado',
-                onPressed:
-                    _isLoadingTx ? null : _loadTransacciones,
+                onPressed: _isLoadingTx ? null : _loadTransacciones,
               ),
             ],
           ),
@@ -677,22 +744,24 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
               child: Padding(
                 padding: EdgeInsets.all(12),
                 child: CircularProgressIndicator(
-                    strokeWidth: 2, color: AppColors.accent),
+                  strokeWidth: 2,
+                  color: AppColors.accent,
+                ),
               ),
             )
           else if (_transacciones.isEmpty)
             Text(
               'Aún no hay transacciones registradas para esta orden.',
               style: GoogleFonts.inter(
-                  fontSize: 13,
-                  color: AppColors.textSecondary),
+                fontSize: 13,
+                color: AppColors.textSecondary,
+              ),
             )
           else
             ..._transacciones.map((tx) {
               final color = txColor(tx);
               return Padding(
-                padding:
-                    const EdgeInsets.symmetric(vertical: 6),
+                padding: const EdgeInsets.symmetric(vertical: 6),
                 child: Row(
                   children: [
                     Container(
@@ -701,34 +770,40 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                         color: color.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Icon(Icons.receipt_long_outlined,
-                          size: 18, color: color),
+                      child: Icon(
+                        Icons.receipt_long_outlined,
+                        size: 18,
+                        color: color,
+                      ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Column(
-                        crossAxisAlignment:
-                            CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             '${tx.metodoPago} • Bs. ${tx.monto.toStringAsFixed(2)}',
                             style: GoogleFonts.inter(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                            ),
                           ),
                           if (tx.fecha != null)
                             Text(
                               dateFormat.format(tx.fecha!),
                               style: GoogleFonts.inter(
-                                  fontSize: 11,
-                                  color: AppColors.textLight),
+                                fontSize: 11,
+                                color: AppColors.textLight,
+                              ),
                             ),
                         ],
                       ),
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: color.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(10),
@@ -736,9 +811,10 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                       child: Text(
                         txLabel(tx),
                         style: TextStyle(
-                            color: color,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold),
+                          color: color,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ],
@@ -757,15 +833,13 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                     ? const SizedBox(
                         width: 18,
                         height: 18,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2),
+                        child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.refresh, size: 18),
                 label: const Text('Reintentar pago'),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.accent,
-                  side:
-                      const BorderSide(color: AppColors.accent),
+                  side: const BorderSide(color: AppColors.accent),
                   minimumSize: const Size.fromHeight(46),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -800,8 +874,11 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
         children: [
           Row(
             children: [
-              const Icon(Icons.receipt_outlined,
-                  color: AppColors.accent, size: 20),
+              const Icon(
+                Icons.receipt_outlined,
+                color: AppColors.accent,
+                size: 20,
+              ),
               const SizedBox(width: 8),
               Text(
                 'Comprobante',
@@ -822,12 +899,16 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                   child: Text(
                     _comprobante!.numero,
                     style: GoogleFonts.inter(
-                        fontWeight: FontWeight.bold, fontSize: 14),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
                   ),
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 4),
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.accent.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(10),
@@ -848,7 +929,9 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
               '${_comprobante!.fechaEmision != null ? dateFormat.format(_comprobante!.fechaEmision!) : ''}'
               '  •  Bs. ${_comprobante!.montoTotal.toStringAsFixed(2)}',
               style: GoogleFonts.inter(
-                  fontSize: 12, color: AppColors.textSecondary),
+                fontSize: 12,
+                color: AppColors.textSecondary,
+              ),
             ),
             const SizedBox(height: 12),
             SizedBox(
@@ -860,14 +943,22 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                         width: 18,
                         height: 18,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white),
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
-                    : const Icon(Icons.picture_as_pdf_outlined,
-                        size: 18, color: Colors.white),
-                label: Text(_isOpeningPdf ? 'Abriendo PDF...' : 'Ver / Descargar PDF',
-                    style: const TextStyle(
+                    : const Icon(
+                        Icons.picture_as_pdf_outlined,
+                        size: 18,
                         color: Colors.white,
-                        fontWeight: FontWeight.bold)),
+                      ),
+                label: Text(
+                  _isOpeningPdf ? 'Abriendo PDF...' : 'Ver / Descargar PDF',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   minimumSize: const Size.fromHeight(46),
@@ -881,28 +972,26 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             Text(
               'Obtén tu factura o ticket de compra en PDF.',
               style: GoogleFonts.inter(
-                  fontSize: 13, color: AppColors.textSecondary),
+                fontSize: 13,
+                color: AppColors.textSecondary,
+              ),
             ),
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
-                onPressed:
-                    _isLoadingComprobante ? null : _fetchComprobante,
+                onPressed: _isLoadingComprobante ? null : _fetchComprobante,
                 icon: _isLoadingComprobante
                     ? const SizedBox(
                         width: 18,
                         height: 18,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2),
+                        child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Icon(Icons.receipt_long_outlined,
-                        size: 18),
+                    : const Icon(Icons.receipt_long_outlined, size: 18),
                 label: const Text('Obtener comprobante'),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.accent,
-                  side:
-                      const BorderSide(color: AppColors.accent),
+                  side: const BorderSide(color: AppColors.accent),
                   minimumSize: const Size.fromHeight(46),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -942,20 +1031,34 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             ),
           ),
           const SizedBox(height: 12),
-          if (order.direccionEnvio != null && order.direccionEnvio!.isNotEmpty) ...[
+          if (order.direccionEnvio != null &&
+              order.direccionEnvio!.isNotEmpty) ...[
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.local_shipping_outlined, size: 20, color: AppColors.accent),
+                const Icon(
+                  Icons.local_shipping_outlined,
+                  size: 20,
+                  color: AppColors.accent,
+                ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Dirección de Envío', style: GoogleFonts.inter(fontSize: 11, color: AppColors.textLight)),
+                      Text(
+                        'Dirección de Envío',
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          color: AppColors.textLight,
+                        ),
+                      ),
                       Text(
                         '${order.direccionEnvio!}${order.ciudadEnvio != null ? ', ${order.ciudadEnvio}' : ''}',
-                        style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500),
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ],
                   ),
@@ -967,14 +1070,30 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           if (order.sucursalNombre != null) ...[
             Row(
               children: [
-                const Icon(Icons.store_outlined, size: 20, color: AppColors.primary),
+                const Icon(
+                  Icons.store_outlined,
+                  size: 20,
+                  color: AppColors.primary,
+                ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Retiro en Tienda', style: GoogleFonts.inter(fontSize: 11, color: AppColors.textLight)),
-                      Text(order.sucursalNombre!, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500)),
+                      Text(
+                        'Retiro en Tienda',
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          color: AppColors.textLight,
+                        ),
+                      ),
+                      Text(
+                        order.sucursalNombre!,
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -985,14 +1104,30 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           if (order.telefonoContacto != null) ...[
             Row(
               children: [
-                const Icon(Icons.phone_outlined, size: 20, color: AppColors.primary),
+                const Icon(
+                  Icons.phone_outlined,
+                  size: 20,
+                  color: AppColors.primary,
+                ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Teléfono de Contacto', style: GoogleFonts.inter(fontSize: 11, color: AppColors.textLight)),
-                      Text(order.telefonoContacto!, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500)),
+                      Text(
+                        'Teléfono de Contacto',
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          color: AppColors.textLight,
+                        ),
+                      ),
+                      Text(
+                        order.telefonoContacto!,
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                     ],
                   ),
                 ),

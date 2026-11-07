@@ -48,14 +48,14 @@ class _CreateReservationPageState extends State<CreateReservationPage> {
         provider.loadBranches().then((_) {
           if (mounted) {
             setState(() {
-              _branch = _findInitialBranch(provider) ??
-                  provider.selectedBranch;
+              _branch = _findInitialBranch(provider) ?? provider.selectedBranch;
             });
           }
         });
       } else {
         setState(() {
-          _branch = _findInitialBranch(provider) ??
+          _branch =
+              _findInitialBranch(provider) ??
               provider.selectedBranch ??
               provider.branches.first;
         });
@@ -109,7 +109,9 @@ class _CreateReservationPageState extends State<CreateReservationPage> {
   }
 
   Future<void> _chooseBranch() async {
-    final selected = await context.push<BranchModel>('/reservations/branch-select');
+    final selected = await context.push<BranchModel>(
+      '/reservations/branch-select',
+    );
     if (selected != null && mounted) {
       setState(() {
         _branch = selected;
@@ -185,9 +187,7 @@ class _CreateReservationPageState extends State<CreateReservationPage> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Reservar Prenda en Tienda'),
-      ),
+      appBar: AppBar(title: const Text('Reservar Prenda en Tienda')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -203,20 +203,22 @@ class _CreateReservationPageState extends State<CreateReservationPage> {
                 decoration: BoxDecoration(
                   color: AppColors.accent.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                      color: AppColors.accent.withOpacity(0.4)),
+                  border: Border.all(color: AppColors.accent.withOpacity(0.4)),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.shopping_bag_outlined,
-                        color: AppColors.accent),
+                    const Icon(
+                      Icons.shopping_bag_outlined,
+                      color: AppColors.accent,
+                    ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         '${widget.initialItems!.length} prenda(s) de tu carrito para probar en tienda',
                         style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13),
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
                   ],
@@ -224,7 +226,8 @@ class _CreateReservationPageState extends State<CreateReservationPage> {
               ),
             // Preselected Product Card
             if (widget.product != null)
-              Container(                padding: const EdgeInsets.all(14),
+              Container(
+                padding: const EdgeInsets.all(14),
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
                   color: AppColors.surface,
@@ -249,7 +252,10 @@ class _CreateReservationPageState extends State<CreateReservationPage> {
                         children: [
                           Text(
                             widget.product!.nombre,
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -262,7 +268,10 @@ class _CreateReservationPageState extends State<CreateReservationPage> {
                           const SizedBox(height: 4),
                           Text(
                             'Cantidad: ${widget.quantity} unidad(es)',
-                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                            ),
                           ),
                         ],
                       ),
@@ -288,20 +297,26 @@ class _CreateReservationPageState extends State<CreateReservationPage> {
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.storefront, color: AppColors.accent, size: 22),
+                          const Icon(
+                            Icons.storefront,
+                            color: AppColors.accent,
+                            size: 22,
+                          ),
                           const SizedBox(width: 8),
                           Text(
                             'Sucursal para Probarse',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.bold),
                           ),
                         ],
                       ),
                       TextButton.icon(
                         onPressed: _chooseBranch,
                         icon: const Icon(Icons.map_outlined, size: 16),
-                        label: const Text('Ver Mapa', style: TextStyle(fontSize: 12)),
+                        label: const Text(
+                          'Ver Mapa',
+                          style: TextStyle(fontSize: 12),
+                        ),
                       ),
                     ],
                   ),
@@ -315,7 +330,11 @@ class _CreateReservationPageState extends State<CreateReservationPage> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.location_on, color: AppColors.primary, size: 20),
+                          const Icon(
+                            Icons.location_on,
+                            color: AppColors.primary,
+                            size: 20,
+                          ),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Column(
@@ -323,7 +342,10 @@ class _CreateReservationPageState extends State<CreateReservationPage> {
                               children: [
                                 Text(
                                   _branch!.nombre,
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
                                 ),
                                 Text(
                                   _branch!.direccion,
@@ -358,13 +380,16 @@ class _CreateReservationPageState extends State<CreateReservationPage> {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.event, color: AppColors.accent, size: 22),
+                      const Icon(
+                        Icons.event,
+                        color: AppColors.accent,
+                        size: 22,
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         'Fecha y Horario Estimado',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
@@ -374,7 +399,10 @@ class _CreateReservationPageState extends State<CreateReservationPage> {
                     onTap: _selectDate,
                     borderRadius: BorderRadius.circular(12),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.surfaceVariant,
                         borderRadius: BorderRadius.circular(12),
@@ -384,15 +412,25 @@ class _CreateReservationPageState extends State<CreateReservationPage> {
                         children: [
                           Row(
                             children: [
-                              const Icon(Icons.calendar_month, color: AppColors.primary, size: 20),
+                              const Icon(
+                                Icons.calendar_month,
+                                color: AppColors.primary,
+                                size: 20,
+                              ),
                               const SizedBox(width: 10),
                               Text(
                                 dateFormat.format(_selectedDate),
-                                style: const TextStyle(fontWeight: FontWeight.w600),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ],
                           ),
-                          const Icon(Icons.edit_calendar, size: 18, color: AppColors.accent),
+                          const Icon(
+                            Icons.edit_calendar,
+                            size: 18,
+                            color: AppColors.accent,
+                          ),
                         ],
                       ),
                     ),
@@ -401,7 +439,9 @@ class _CreateReservationPageState extends State<CreateReservationPage> {
                   // Time Slot chips
                   Text(
                     'Horario de visita sugerido:',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Wrap(
@@ -415,14 +455,20 @@ class _CreateReservationPageState extends State<CreateReservationPage> {
                         selectedColor: AppColors.primary,
                         backgroundColor: AppColors.surfaceVariant,
                         labelStyle: TextStyle(
-                          color: isSelected ? Colors.white : AppColors.textPrimary,
+                          color: isSelected
+                              ? Colors.white
+                              : AppColors.textPrimary,
                           fontSize: 12,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          fontWeight: isSelected
+                              ? FontWeight.bold
+                              : FontWeight.normal,
                         ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                           side: BorderSide(
-                            color: isSelected ? AppColors.primary : AppColors.border,
+                            color: isSelected
+                                ? AppColors.primary
+                                : AppColors.border,
                           ),
                         ),
                         onSelected: (selected) {
@@ -453,13 +499,16 @@ class _CreateReservationPageState extends State<CreateReservationPage> {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.notes, color: AppColors.accent, size: 22),
+                      const Icon(
+                        Icons.notes,
+                        color: AppColors.accent,
+                        size: 22,
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         'Notas o Indicaciones (Opcional)',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
@@ -468,7 +517,8 @@ class _CreateReservationPageState extends State<CreateReservationPage> {
                     controller: _notesController,
                     maxLines: 2,
                     decoration: const InputDecoration(
-                      hintText: 'Ej. Deseo probarme también la talla M si está disponible.',
+                      hintText:
+                          'Ej. Deseo probarme también la talla M si está disponible.',
                     ),
                   ),
                 ],
@@ -493,7 +543,10 @@ class _CreateReservationPageState extends State<CreateReservationPage> {
                         SizedBox(
                           width: 20,
                           height: 20,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
                         ),
                         SizedBox(width: 12),
                         Text('Guardando Reserva...'),
@@ -501,7 +554,10 @@ class _CreateReservationPageState extends State<CreateReservationPage> {
                     )
                   : const Text(
                       'Confirmar Reserva de Prenda',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
             ),
             const SizedBox(height: 24),

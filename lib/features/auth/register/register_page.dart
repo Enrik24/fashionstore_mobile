@@ -82,7 +82,8 @@ class _RegisterPageState extends State<RegisterPage> {
     } else {
       AppNotifications.showError(
         context,
-        auth.errorMessage ?? 'Error al registrar la cuenta. Verifica los datos.',
+        auth.errorMessage ??
+            'Error al registrar la cuenta. Verifica los datos.',
       );
     }
   }
@@ -97,7 +98,11 @@ class _RegisterPageState extends State<RegisterPage> {
         backgroundColor: AppColors.background,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: AppColors.primary),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            size: 20,
+            color: AppColors.primary,
+          ),
           onPressed: () => context.pop(),
         ),
         title: Text(
@@ -161,7 +166,8 @@ class _RegisterPageState extends State<RegisterPage> {
                               hint: 'Carlos',
                               prefixIcon: Icons.person_outline_rounded,
                               textCapitalization: TextCapitalization.words,
-                              validator: (val) => AppValidators.name(val, 'El nombre'),
+                              validator: (val) =>
+                                  AppValidators.name(val, 'El nombre'),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -172,7 +178,8 @@ class _RegisterPageState extends State<RegisterPage> {
                               hint: 'Gómez',
                               prefixIcon: Icons.person_outline_rounded,
                               textCapitalization: TextCapitalization.words,
-                              validator: (val) => AppValidators.name(val, 'El apellido'),
+                              validator: (val) =>
+                                  AppValidators.name(val, 'El apellido'),
                             ),
                           ),
                         ],
@@ -280,7 +287,9 @@ class _RegisterPageState extends State<RegisterPage> {
                               'Acepto los términos y condiciones y políticas de privacidad de FashionStore.',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: _acceptTerms ? AppColors.textPrimary : AppColors.textSecondary,
+                                color: _acceptTerms
+                                    ? AppColors.textPrimary
+                                    : AppColors.textSecondary,
                               ),
                             ),
                           ),

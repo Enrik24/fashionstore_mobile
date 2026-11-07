@@ -50,16 +50,13 @@ class CartSummaryWidget extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Subtotal',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
+                Text('Subtotal', style: Theme.of(context).textTheme.bodyMedium),
                 Text(
                   currencyFormatter.format(subtotal),
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                      ),
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ],
             ),
@@ -72,12 +69,18 @@ class CartSummaryWidget extends StatelessWidget {
                     children: [
                       const Text(
                         'Descuento',
-                        style: TextStyle(color: AppColors.success, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          color: AppColors.success,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       if (couponCode != null) ...[
                         const SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 1,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.success.withOpacity(0.12),
                             borderRadius: BorderRadius.circular(4),
@@ -108,15 +111,16 @@ class CartSummaryWidget extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                Text('Envío', style: Theme.of(context).textTheme.bodyMedium),
                 Text(
-                  'Envío',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                Text(
-                  shippingCost == 0.0 ? 'Calculado al finalizar' : currencyFormatter.format(shippingCost),
+                  shippingCost == 0.0
+                      ? 'Calculado al finalizar'
+                      : currencyFormatter.format(shippingCost),
                   style: TextStyle(
                     fontSize: 13,
-                    color: shippingCost == 0.0 ? AppColors.textMuted : AppColors.textPrimary,
+                    color: shippingCost == 0.0
+                        ? AppColors.textMuted
+                        : AppColors.textPrimary,
                   ),
                 ),
               ],
@@ -128,15 +132,15 @@ class CartSummaryWidget extends StatelessWidget {
                 Text(
                   'Total a pagar',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 Text(
                   currencyFormatter.format(total),
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.accent,
-                      ),
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.accent,
+                  ),
                 ),
               ],
             ),
@@ -155,14 +159,20 @@ class CartSummaryWidget extends StatelessWidget {
                   ? const SizedBox(
                       width: 22,
                       height: 22,
-                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
                     )
                   : const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
                           'Continuar con la compra',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         SizedBox(width: 8),
                         Icon(Icons.arrow_forward, size: 20),

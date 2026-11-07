@@ -7,7 +7,7 @@ class ReviewProvider extends ChangeNotifier {
   final ReviewService _service;
 
   ReviewProvider({required ReviewService reviewService})
-      : _service = reviewService;
+    : _service = reviewService;
 
   /// Caché de reseñas por producto.
   final Map<int, List<ReviewModel>> _reviewsByProduct = {};
@@ -37,8 +37,9 @@ class ReviewProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _reviewsByProduct[productoId] =
-          await _service.getProductReviews(productoId);
+      _reviewsByProduct[productoId] = await _service.getProductReviews(
+        productoId,
+      );
     } catch (e) {
       _errorMessage = e.toString();
     } finally {
@@ -61,8 +62,10 @@ class ReviewProvider extends ChangeNotifier {
         _myReviewByProduct[productoId] = mine;
       }
     } catch (_) {
-      _canReviewByProduct[productoId] =
-          CanReviewModel(puedeValorar: false, motivo: 'Inicia sesión para valorar');
+      _canReviewByProduct[productoId] = CanReviewModel(
+        puedeValorar: false,
+        motivo: 'Inicia sesión para valorar',
+      );
       _myReviewByProduct[productoId] = null;
     }
     notifyListeners();

@@ -27,15 +27,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
     final checkoutProvider = context.read<CheckoutProvider>();
 
     if (cartProvider.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Tu carrito está vacío')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Tu carrito está vacío')));
       return;
     }
 
-    final order = await checkoutProvider.createOrder(
-      items: cartProvider.items,
-    );
+    final order = await checkoutProvider.createOrder(items: cartProvider.items);
 
     if (!mounted) return;
 
@@ -47,8 +45,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
         if (session == null) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(checkoutProvider.errorMessage ??
-                  'No se pudo iniciar el pago con Stripe'),
+              content: Text(
+                checkoutProvider.errorMessage ??
+                    'No se pudo iniciar el pago con Stripe',
+              ),
               backgroundColor: AppColors.error,
             ),
           );
@@ -75,8 +75,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
         if (!opened) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(checkoutProvider.errorMessage ??
-                  'No se pudo abrir PayPal'),
+              content: Text(
+                checkoutProvider.errorMessage ?? 'No se pudo abrir PayPal',
+              ),
               backgroundColor: AppColors.error,
             ),
           );
@@ -99,7 +100,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(checkoutProvider.errorMessage ?? 'Error al procesar el pedido'),
+          content: Text(
+            checkoutProvider.errorMessage ?? 'Error al procesar el pedido',
+          ),
           backgroundColor: AppColors.error,
         ),
       );
@@ -110,10 +113,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
   Widget build(BuildContext context) {
     final cartProvider = context.watch<CartProvider>();
     final checkoutProvider = context.watch<CheckoutProvider>();
-    
+
     final isPickup = checkoutProvider.deliveryType == 'PICKUP';
-    final shippingCost = isPickup ? 0.0 : (cartProvider.subtotal > 300 ? 0.0 : 20.0);
-    final total = (cartProvider.subtotal - cartProvider.discount) + shippingCost;
+    final shippingCost = isPickup
+        ? 0.0
+        : (cartProvider.subtotal > 300 ? 0.0 : 20.0);
+    final total =
+        (cartProvider.subtotal - cartProvider.discount) + shippingCost;
 
     String getButtonLabel() {
       switch (checkoutProvider.paymentMethod) {
@@ -131,9 +137,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Confirmar Pedido'),
-      ),
+      appBar: AppBar(title: const Text('Confirmar Pedido')),
       body: cartProvider.isEmpty
           ? Center(
               child: Column(
@@ -168,7 +172,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   ),
                   const SizedBox(height: 24),
                   ElevatedButton(
-                    onPressed: checkoutProvider.isProcessing ? null : _processOrder,
+                    onPressed: checkoutProvider.isProcessing
+                        ? null
+                        : _processOrder,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.accent,
                       foregroundColor: Colors.white,
@@ -184,7 +190,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
                               SizedBox(
                                 width: 22,
                                 height: 22,
-                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
                               ),
                               SizedBox(width: 12),
                               Text('Procesando Orden...'),
@@ -193,7 +202,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
                         : Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.lock_outline, size: 20, color: Colors.white),
+                              const Icon(
+                                Icons.lock_outline,
+                                size: 20,
+                                color: Colors.white,
+                              ),
                               const SizedBox(width: 8),
                               Text(
                                 getButtonLabel(),

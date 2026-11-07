@@ -60,8 +60,7 @@ class _ReviewsSectionState extends State<ReviewsSection> {
         final canReview = provider.canReviewOf(widget.product.id);
         final myReview = provider.myReviewOf(widget.product.id);
         final isLoading = provider.isLoadingReviews(widget.product.id);
-        final isAuthenticated =
-            context.watch<AuthProvider>().isAuthenticated;
+        final isAuthenticated = context.watch<AuthProvider>().isAuthenticated;
 
         final visible = reviews.take(_visibleCount).toList();
         final hasMore = reviews.length > _visibleCount;
@@ -74,16 +73,14 @@ class _ReviewsSectionState extends State<ReviewsSection> {
               children: [
                 Text(
                   'Valoraciones',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(fontWeight: FontWeight.bold),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 if (widget.product.hasRatings)
                   Row(
                     children: [
-                      StarRating(
-                          value: widget.product.rating, size: 16),
+                      StarRating(value: widget.product.rating, size: 16),
                       const SizedBox(width: 4),
                       Text(
                         '${widget.product.rating.toStringAsFixed(1)} (${widget.product.totalReviews})',
@@ -132,8 +129,7 @@ class _ReviewsSectionState extends State<ReviewsSection> {
               const Center(
                 child: Padding(
                   padding: EdgeInsets.all(16),
-                  child: CircularProgressIndicator(
-                      color: AppColors.accent),
+                  child: CircularProgressIndicator(color: AppColors.accent),
                 ),
               )
             else if (reviews.isEmpty)
@@ -156,10 +152,10 @@ class _ReviewsSectionState extends State<ReviewsSection> {
             if (hasMore)
               Center(
                 child: TextButton(
-                  onPressed: () => setState(
-                      () => _visibleCount += _pageSize),
+                  onPressed: () => setState(() => _visibleCount += _pageSize),
                   child: Text(
-                      'Ver más (${reviews.length - _visibleCount} restantes)'),
+                    'Ver más (${reviews.length - _visibleCount} restantes)',
+                  ),
                 ),
               ),
           ],
@@ -196,42 +192,46 @@ class _ReviewCard extends StatelessWidget {
               CircleAvatar(
                 radius: 16,
                 backgroundColor: AppColors.primary,
-                child: Text(initial,
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold)),
+                child: Text(
+                  initial,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(review.clienteNombre,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13)),
+                    Text(
+                      review.clienteNombre,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
                     if (review.fechaCreacion != null)
                       Text(
                         dateFormat.format(review.fechaCreacion!),
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(
-                                color: AppColors.textMuted,
-                                fontSize: 11),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.textMuted,
+                          fontSize: 11,
+                        ),
                       ),
                   ],
                 ),
               ),
-              StarRating(
-                  value: review.puntuacion.toDouble(), size: 14),
+              StarRating(value: review.puntuacion.toDouble(), size: 14),
             ],
           ),
-          if (review.comentario != null &&
-              review.comentario!.isNotEmpty) ...[
+          if (review.comentario != null && review.comentario!.isNotEmpty) ...[
             const SizedBox(height: 8),
-            Text(review.comentario!,
-                style: Theme.of(context).textTheme.bodyMedium),
+            Text(
+              review.comentario!,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
           ],
         ],
       ),
@@ -252,37 +252,38 @@ class _MyReviewCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.accent.withOpacity(0.08),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-            color: AppColors.accent.withOpacity(0.4)),
+        border: Border.all(color: AppColors.accent.withOpacity(0.4)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Text('Tu valoración',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text(
+                'Tu valoración',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
               const Spacer(),
-              StarRating(
-                  value: review.puntuacion.toDouble(), size: 16),
+              StarRating(value: review.puntuacion.toDouble(), size: 16),
               IconButton(
-                icon: const Icon(Icons.edit_outlined,
-                    size: 18, color: AppColors.accent),
+                icon: const Icon(
+                  Icons.edit_outlined,
+                  size: 18,
+                  color: AppColors.accent,
+                ),
                 tooltip: 'Editar',
                 onPressed: onEdit,
               ),
             ],
           ),
-          if (review.comentario != null &&
-              review.comentario!.isNotEmpty)
+          if (review.comentario != null && review.comentario!.isNotEmpty)
             Text(review.comentario!),
           if (!review.isPublicada)
             const Padding(
               padding: EdgeInsets.only(top: 4),
               child: Text(
                 'Tu comentario está en revisión de moderación.',
-                style: TextStyle(
-                    fontSize: 11, color: AppColors.warning),
+                style: TextStyle(fontSize: 11, color: AppColors.warning),
               ),
             ),
         ],

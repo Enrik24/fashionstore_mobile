@@ -30,11 +30,19 @@ class _EditProfilePageState extends State<EditProfilePage> {
     final user = auth.currentUser;
     final profile = auth.clienteProfile;
 
-    _nombreCtrl = TextEditingController(text: profile?.nombre ?? user?.nombre ?? '');
-    _apellidoCtrl = TextEditingController(text: profile?.apellido ?? user?.apellido ?? '');
-    _telefonoCtrl = TextEditingController(text: profile?.telefono ?? user?.telefono ?? '');
+    _nombreCtrl = TextEditingController(
+      text: profile?.nombre ?? user?.nombre ?? '',
+    );
+    _apellidoCtrl = TextEditingController(
+      text: profile?.apellido ?? user?.apellido ?? '',
+    );
+    _telefonoCtrl = TextEditingController(
+      text: profile?.telefono ?? user?.telefono ?? '',
+    );
     _direccionCtrl = TextEditingController(text: profile?.direccionEnvio ?? '');
-    _correoCtrl = TextEditingController(text: user?.correo ?? profile?.correo ?? '');
+    _correoCtrl = TextEditingController(
+      text: user?.correo ?? profile?.correo ?? '',
+    );
     _nitCiCtrl = TextEditingController(text: profile?.nitCi ?? '');
   }
 
@@ -87,10 +95,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: const CustomAppBar(
-        title: 'Editar Perfil',
-        showBackButton: true,
-      ),
+      appBar: const CustomAppBar(title: 'Editar Perfil', showBackButton: true),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Form(
@@ -106,14 +111,18 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 controller: _nombreCtrl,
                 label: 'Nombre',
                 icon: Icons.person_outline,
-                validator: (val) => val == null || val.trim().isEmpty ? 'El nombre es obligatorio' : null,
+                validator: (val) => val == null || val.trim().isEmpty
+                    ? 'El nombre es obligatorio'
+                    : null,
               ),
               const SizedBox(height: 14),
               _buildTextField(
                 controller: _apellidoCtrl,
                 label: 'Apellido',
                 icon: Icons.person_outline,
-                validator: (val) => val == null || val.trim().isEmpty ? 'El apellido es obligatorio' : null,
+                validator: (val) => val == null || val.trim().isEmpty
+                    ? 'El apellido es obligatorio'
+                    : null,
               ),
               const SizedBox(height: 14),
               _buildTextField(
@@ -146,7 +155,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 label: 'Dirección de Entrega Predeterminada',
                 icon: Icons.location_on_outlined,
                 maxLines: 2,
-                helperText: 'Se usará como dirección por defecto en tus compras',
+                helperText:
+                    'Se usará como dirección por defecto en tus compras',
               ),
               const SizedBox(height: 32),
               SizedBox(
@@ -156,18 +166,26 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                   ),
                   onPressed: _isSaving ? null : _handleSave,
                   child: _isSaving
                       ? const SizedBox(
                           width: 24,
                           height: 24,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
                         )
                       : Text(
                           'Guardar Cambios',
-                          style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 15),
+                          style: GoogleFonts.inter(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
                         ),
                 ),
               ),
@@ -247,7 +265,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
         labelText: label,
         labelStyle: GoogleFonts.inter(fontSize: 13, color: AppColors.textLight),
         helperText: helperText,
-        helperStyle: GoogleFonts.inter(fontSize: 11, color: AppColors.textLight),
+        helperStyle: GoogleFonts.inter(
+          fontSize: 11,
+          color: AppColors.textLight,
+        ),
         prefixIcon: Icon(icon, color: AppColors.primary, size: 20),
         filled: true,
         fillColor: readOnly ? Colors.grey.shade100 : Colors.white,

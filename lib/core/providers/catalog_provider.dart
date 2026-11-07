@@ -6,13 +6,14 @@ class CatalogProvider extends ChangeNotifier {
   final CatalogService _catalogService;
 
   CatalogProvider({required CatalogService catalogService})
-      : _catalogService = catalogService;
+    : _catalogService = catalogService;
 
   // Catalog State
   List<ProductModel> _products = [];
   bool _isLoading = false;
   bool _isLoadingMore = false;
   String? _errorMessage;
+  bool _isOfflineData = false;
   int _currentPage = 1;
   int _totalPages = 1;
   int _totalItems = 0;
@@ -36,7 +37,8 @@ class CatalogProvider extends ChangeNotifier {
   double? _minPrice;
   double? _maxPrice;
   String? _searchQuery;
-  String? _ordering = 'recientes'; // 'recientes', 'precio_asc', 'precio_desc', 'nombre'
+  String? _ordering =
+      'recientes'; // 'recientes', 'precio_asc', 'precio_desc', 'nombre'
   String? _selectedGenero; // 'HOMBRE', 'MUJER', 'UNISEX' (null = Todos)
 
   // Selected Product Detail State
@@ -60,6 +62,7 @@ class CatalogProvider extends ChangeNotifier {
   List<ProductModel> get products => _products;
   bool get isLoading => _isLoading;
   bool get isLoadingMore => _isLoadingMore;
+  bool get isOfflineData => _isOfflineData;
   String? get errorMessage => _errorMessage;
   int get currentPage => _currentPage;
   int get totalPages => _totalPages;
@@ -162,6 +165,7 @@ class CatalogProvider extends ChangeNotifier {
         orden: _ordering,
         genero: _selectedGenero,
       );
+      _isOfflineData = false;
 
       if (refresh || _currentPage == 1) {
         _products = response.items;
@@ -174,7 +178,26 @@ class CatalogProvider extends ChangeNotifier {
       _currentPage++;
       _errorMessage = null;
     } catch (e) {
-      _errorMessage = e.toString();
+      final local = await _catalogService.getCatalogoConRespaldo(
+        page: _currentPage,
+        pageSize: 12,
+        categoriaId: _selectedCategoryId,
+        search: _searchQuery,
+      );
+      if (local.catalogo.items.isNotEmpty) {
+        if (refresh || _currentPage == 1) {
+          _products = local.catalogo.items;
+        } else {
+          _products.addAll(local.catalogo.items);
+        }
+        _totalPages = local.catalogo.totalPages;
+        _totalItems = local.catalogo.total;
+        _currentPage++;
+        _isOfflineData = local.esOffline;
+        _errorMessage = null;
+      } else {
+        _errorMessage = e.toString();
+      }
     } finally {
       _isLoading = false;
       _isLoadingMore = false;

@@ -11,7 +11,7 @@ class PromotionsProvider extends ChangeNotifier {
   final PromotionService _service;
 
   PromotionsProvider({required PromotionService promotionService})
-      : _service = promotionService;
+    : _service = promotionService;
 
   List<PromotionModel> _promociones = [];
   bool _loaded = false;
@@ -45,8 +45,8 @@ class PromotionsProvider extends ChangeNotifier {
       if (!promo.isPorcentaje) continue;
       final valor = promo.valor ?? 0;
       final aplicaProducto = promo.productoIds.contains(productoId);
-      final aplicaCategoria = categoriaId != null &&
-          promo.categoriaIds.contains(categoriaId);
+      final aplicaCategoria =
+          categoriaId != null && promo.categoriaIds.contains(categoriaId);
       if (aplicaProducto || aplicaCategoria) {
         if (maxDescuento == null || valor > maxDescuento) {
           maxDescuento = valor;
@@ -60,14 +60,16 @@ class PromotionsProvider extends ChangeNotifier {
     return _promociones.any((p) {
       if (!p.is2x1) return false;
       return p.productoIds.contains(productoId) ||
-          (categoriaId != null &&
-              p.categoriaIds.contains(categoriaId));
+          (categoriaId != null && p.categoriaIds.contains(categoriaId));
     });
   }
 
   /// Precio con el mejor descuento aplicado (si hay).
   double precioConDescuento(
-      int productoId, int? categoriaId, double precioBase) {
+    int productoId,
+    int? categoriaId,
+    double precioBase,
+  ) {
     final d = getDiscountForProduct(productoId, categoriaId);
     if (d == null) return precioBase;
     return precioBase * (1 - d / 100);

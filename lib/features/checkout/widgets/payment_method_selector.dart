@@ -57,9 +57,9 @@ class PaymentMethodSelector extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 'Método de Pago',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -69,7 +69,9 @@ class PaymentMethodSelector extends StatelessWidget {
             return Container(
               margin: const EdgeInsets.only(bottom: 10),
               decoration: BoxDecoration(
-                color: isSelected ? AppColors.surfaceVariant : Colors.transparent,
+                color: isSelected
+                    ? AppColors.surfaceVariant
+                    : Colors.transparent,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: isSelected ? AppColors.accent : AppColors.border,
@@ -80,7 +82,10 @@ class PaymentMethodSelector extends StatelessWidget {
                 onTap: () => checkout.setPaymentMethod(m['id'] as String),
                 borderRadius: BorderRadius.circular(12),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
                   child: Row(
                     children: [
                       // Radio Circle
@@ -90,7 +95,9 @@ class PaymentMethodSelector extends StatelessWidget {
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: isSelected ? AppColors.accent : AppColors.textSecondary,
+                            color: isSelected
+                                ? AppColors.accent
+                                : AppColors.textSecondary,
                             width: 2,
                           ),
                         ),
@@ -127,7 +134,10 @@ class PaymentMethodSelector extends StatelessWidget {
                                 ),
                                 if (m['badge'] != null)
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: AppColors.accent.withOpacity(0.12),
                                       borderRadius: BorderRadius.circular(6),
@@ -146,7 +156,8 @@ class PaymentMethodSelector extends StatelessWidget {
                             const SizedBox(height: 2),
                             Text(
                               m['subtitle'] as String,
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
                                     color: AppColors.textSecondary,
                                     fontSize: 11,
                                   ),
@@ -158,7 +169,9 @@ class PaymentMethodSelector extends StatelessWidget {
                       // Secondary Icon
                       Icon(
                         m['icon'] as IconData,
-                        color: isSelected ? AppColors.accent : AppColors.textSecondary,
+                        color: isSelected
+                            ? AppColors.accent
+                            : AppColors.textSecondary,
                         size: 24,
                       ),
                     ],

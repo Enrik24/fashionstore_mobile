@@ -17,11 +17,14 @@ class AiService {
         AppConstants.epInteligenciaRecomendaciones,
         data: {
           if (clienteId != null) 'cliente_id': clienteId,
-          if (preferencias != null && preferencias.isNotEmpty) 'preferencias': preferencias,
+          if (preferencias != null && preferencias.isNotEmpty)
+            'preferencias': preferencias,
           'limite': limite,
         },
       );
-      return RecomendacionResponse.fromJson(response.data as Map<String, dynamic>);
+      return RecomendacionResponse.fromJson(
+        response.data as Map<String, dynamic>,
+      );
     } catch (e) {
       throw _apiService.handleError(e);
     }
@@ -42,7 +45,9 @@ class AiService {
             'categoria_interes': categoriaInteres,
         },
       );
-      return AsistenteChatResponse.fromJson(response.data as Map<String, dynamic>);
+      return AsistenteChatResponse.fromJson(
+        response.data as Map<String, dynamic>,
+      );
     } catch (e) {
       throw _apiService.handleError(e);
     }
@@ -60,11 +65,14 @@ class AiService {
         data: {
           'producto_id': productoId,
           if (varianteId != null) 'variante_id': varianteId,
-          if (imagenUsuarioBase64 != null) 'imagen_usuario_base64': imagenUsuarioBase64,
+          if (imagenUsuarioBase64 != null)
+            'imagen_usuario_base64': imagenUsuarioBase64,
           if (imagenUsuarioUrl != null) 'imagen_usuario_url': imagenUsuarioUrl,
         },
       );
-      return VestidorVirtualResponse.fromJson(response.data as Map<String, dynamic>);
+      return VestidorVirtualResponse.fromJson(
+        response.data as Map<String, dynamic>,
+      );
     } catch (e) {
       throw _apiService.handleError(e);
     }

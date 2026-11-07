@@ -63,7 +63,10 @@ class OrderService {
     }
   }
 
-  Future<List<OrderModel>> getHistorialCompras({int skip = 0, int limit = 20}) async {
+  Future<List<OrderModel>> getHistorialCompras({
+    int skip = 0,
+    int limit = 20,
+  }) async {
     try {
       final response = await _apiService.dio.get(
         AppConstants.epHistorialCompras,
@@ -87,7 +90,9 @@ class OrderService {
 
   Future<OrderModel> getOrdenDetalle(int id) async {
     try {
-      final response = await _apiService.dio.get('${AppConstants.epOrdenes}$id');
+      final response = await _apiService.dio.get(
+        '${AppConstants.epOrdenes}$id',
+      );
       return OrderModel.fromJson(response.data as Map<String, dynamic>);
     } catch (e) {
       throw _apiService.handleError(e);
@@ -101,8 +106,7 @@ class OrderService {
       final response = await _apiService.dio.get(
         '${AppConstants.epOrdenes}$ordenId/comprobante',
       );
-      return ComprobanteModel.fromJson(
-          response.data as Map<String, dynamic>);
+      return ComprobanteModel.fromJson(response.data as Map<String, dynamic>);
     } catch (e) {
       throw _apiService.handleError(e);
     }
@@ -135,16 +139,17 @@ class OrderService {
 
   /// `GET /pagos/transacciones/orden/{orden_id}` — historial de
   /// transacciones de pago de una orden (CU18).
-  Future<List<PaymentTransactionModel>> getTransacciones(
-      int ordenId) async {
+  Future<List<PaymentTransactionModel>> getTransacciones(int ordenId) async {
     try {
       final response = await _apiService.dio.get(
         '${AppConstants.epTransaccionesOrden}/$ordenId',
       );
       if (response.data is List) {
         return (response.data as List)
-            .map((e) =>
-                PaymentTransactionModel.fromJson(e as Map<String, dynamic>))
+            .map(
+              (e) =>
+                  PaymentTransactionModel.fromJson(e as Map<String, dynamic>),
+            )
             .toList();
       }
       return [];
@@ -163,11 +168,15 @@ class OrderService {
         AppConstants.epStripeCheckout,
         data: {
           'orden_id': ordenId,
-          if (successUrl != null && successUrl.isNotEmpty) 'success_url': successUrl,
-          if (cancelUrl != null && cancelUrl.isNotEmpty) 'cancel_url': cancelUrl,
+          if (successUrl != null && successUrl.isNotEmpty)
+            'success_url': successUrl,
+          if (cancelUrl != null && cancelUrl.isNotEmpty)
+            'cancel_url': cancelUrl,
         },
       );
-      return StripeSessionResponse.fromJson(response.data as Map<String, dynamic>);
+      return StripeSessionResponse.fromJson(
+        response.data as Map<String, dynamic>,
+      );
     } catch (e) {
       throw _apiService.handleError(e);
     }
@@ -199,11 +208,15 @@ class OrderService {
         AppConstants.epPaypalCrearOrden,
         data: {
           'orden_id': ordenId,
-          if (returnUrl != null && returnUrl.isNotEmpty) 'return_url': returnUrl,
-          if (cancelUrl != null && cancelUrl.isNotEmpty) 'cancel_url': cancelUrl,
+          if (returnUrl != null && returnUrl.isNotEmpty)
+            'return_url': returnUrl,
+          if (cancelUrl != null && cancelUrl.isNotEmpty)
+            'cancel_url': cancelUrl,
         },
       );
-      return PayPalOrderResponse.fromJson(response.data as Map<String, dynamic>);
+      return PayPalOrderResponse.fromJson(
+        response.data as Map<String, dynamic>,
+      );
     } catch (e) {
       throw _apiService.handleError(e);
     }
@@ -216,6 +229,80 @@ class OrderService {
       await _apiService.dio.post(
         AppConstants.epPaypalCapturar,
         data: {'paypal_order_id': paypalOrderId, 'orden_id': ordenId},
+      );
+    } catch (e) {
+      throw _apiService.handleError(e);
+    }
+  }
+
+  // [EXAMEN-2] C2.5 (§7.6) CU16: orden con pago diferido + respaldo local.
+  Future<OrderModel> crearOrdenConPagoDiferido({
+    int? sucursalId,
+    String? direccionEnvio,
+    String? ciudadEnvio,
+    String? telefonoContacto,
+    List<Map<String, dynamic>>? items,
+  }) async {
+    try {
+      final response = await _apiService.dio.post(
+        '${AppConstants.epPagosDiferidos}/orden',
+        data: <String, Object?>{
+          if (sucursalId != null) 'sucursal_id': sucursalId,
+          if (direccionEnvio != null && direccionEnvio.isNotEmpty)
+            'direccion_envio': direccionEnvio,
+          if (ciudadEnvio != null && ciudadEnvio.isNotEmpty)
+            'ciudad_envio': ciudadEnvio,
+          if (telefonoContacto != null && telefonoContacto.isNotEmpty)
+            'telefono_contacto': telefonoContacto,
+          if (items != null && items.isNotEmpty) 'items': items,
+        },
+      );
+      return OrderModel.fromJson(response.data as Map<String, dynamic>);
+    } catch (e) {
+      throw _apiService.handleError(e);
+    }
+  }
+
+  // [EXAMEN-2] C2.5 (§7.6): respaldo — si hay error de red, devuelve historial local.
+  Future<List<OrderModel>> getOrdenesConRespaldo() async {
+    try {
+      return await getOrdenes();
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  Future<OrderModel?> getOrdenPorUuid(String uuid) async {
+    try {
+      final response = await _apiService.dio.get(
+        '${AppConstants.epOrdenes}uuid/$uuid',
+      );
+      if (response.data is Map) {
+        return OrderModel.fromJson(response.data as Map<String, dynamic>);
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  Future<Map<String, dynamic>> getEstadoPagoDiferido(String uuidPago) async {
+    try {
+      final response = await _apiService.dio.get(
+        '${AppConstants.epPagosDiferidos}/$uuidPago',
+      );
+      return response.data is Map<String, dynamic>
+          ? response.data as Map<String, dynamic>
+          : <String, dynamic>{};
+    } catch (e) {
+      throw _apiService.handleError(e);
+    }
+  }
+
+  Future<void> confirmarPagoDiferido(String uuidPago) async {
+    try {
+      // Idempotencia: mismo uuid reutilizado; el backend no duplica (RN-005/RN-015).
+      await _apiService.dio.post(
+        '${AppConstants.epPagosDiferidos}/$uuidPago/confirmar',
+        options: Options(headers: {'Idempotency-Key': uuidPago}),
       );
     } catch (e) {
       throw _apiService.handleError(e);

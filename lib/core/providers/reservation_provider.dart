@@ -6,7 +6,9 @@ class ReservationProvider extends ChangeNotifier {
   final ReservationService _reservationService;
 
   ReservationProvider({required ReservationService reservationService})
-      : _reservationService = reservationService;
+    : _reservationService = reservationService {
+    loadReservations();
+  }
 
   List<ReservationModel> _reservations = [];
   List<BranchModel> _branches = [];

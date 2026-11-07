@@ -44,7 +44,11 @@ class CartItemCard extends StatelessWidget {
             SizedBox(height: 4),
             Text(
               'Eliminar',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
             ),
           ],
         ),
@@ -71,7 +75,8 @@ class CartItemCard extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: CachedNetworkImage(
-                imageUrl: item.productoImagen ??
+                imageUrl:
+                    item.productoImagen ??
                     'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?auto=format&fit=crop&q=80&w=300',
                 width: 80,
                 height: 80,
@@ -79,7 +84,10 @@ class CartItemCard extends StatelessWidget {
                 placeholder: (context, url) => Container(
                   color: AppColors.surfaceVariant,
                   child: const Center(
-                    child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accent),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.accent,
+                    ),
                   ),
                 ),
                 errorWidget: (context, url, error) => Container(
@@ -99,9 +107,13 @@ class CartItemCard extends StatelessWidget {
                     item.productoNombre,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
                   ),
-                  if (item.skuVariante != null && item.skuVariante!.isNotEmpty) ...[
+                  if (item.skuVariante != null &&
+                      item.skuVariante!.isNotEmpty) ...[
                     const SizedBox(height: 2),
                     Text(
                       'SKU: ${item.skuVariante}',
@@ -117,13 +129,19 @@ class CartItemCard extends StatelessWidget {
                     spacing: 6,
                     runSpacing: 4,
                     children: [
-                      if (item.tallaNombre != null && item.tallaNombre!.isNotEmpty)
+                      if (item.tallaNombre != null &&
+                          item.tallaNombre!.isNotEmpty)
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.primary.withOpacity(0.08),
                             borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+                            border: Border.all(
+                              color: AppColors.primary.withOpacity(0.2),
+                            ),
                           ),
                           child: Text(
                             'Talla: ${item.tallaNombre}',
@@ -134,13 +152,19 @@ class CartItemCard extends StatelessWidget {
                             ),
                           ),
                         ),
-                      if (item.colorNombre != null && item.colorNombre!.isNotEmpty)
+                      if (item.colorNombre != null &&
+                          item.colorNombre!.isNotEmpty)
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.accent.withOpacity(0.08),
                             borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: AppColors.accent.withOpacity(0.2)),
+                            border: Border.all(
+                              color: AppColors.accent.withOpacity(0.2),
+                            ),
                           ),
                           child: Text(
                             'Color: ${item.colorNombre}',

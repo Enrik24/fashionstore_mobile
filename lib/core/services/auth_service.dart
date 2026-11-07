@@ -1,11 +1,64 @@
 import '../../config/constants.dart';
 import '../models/user_model.dart';
 import 'api_service.dart';
+import 'offline_session_service.dart';
+import '../database/local_database_service.dart';
 
 class AuthService {
   final ApiService apiService;
+  final OfflineSessionService? _offlineSessionService;
+  final LocalDatabaseService? _localDatabaseService;
 
-  AuthService({required this.apiService});
+  AuthService({
+    required this.apiService,
+    OfflineSessionService? offlineSessionService,
+    LocalDatabaseService? localDatabaseService,
+  }) : _offlineSessionService = offlineSessionService,
+       _localDatabaseService = localDatabaseService;
+
+  /// [EXAMEN-2] CU17: configura, inicia, renueva y cierra la sesión offline.
+  Future<bool> configurarPin({
+    required String pin,
+    required String contrasenaActual,
+  }) async {
+    final servicio = _offlineSessionService;
+    if (servicio == null) {
+      throw StateError('El servicio offline no está configurado.');
+    }
+    return servicio.configurarPin(pin: pin, contrasenaActual: contrasenaActual);
+  }
+
+  Future<void> eliminarPin() async {
+    await _offlineSessionService?.eliminarPin();
+  }
+
+  Future<bool> iniciarSesionOffline(String pin) async {
+    final servicio = _offlineSessionService;
+    if (servicio == null) return false;
+    return servicio.iniciarSesionOffline(pin);
+  }
+
+  // [EXAMEN-2] C1.2: dueños reales de la vigencia offline.
+  bool get haySesionValidaOffline => _offlineSessionService?.haySesionValida ?? false;
+  bool get sesionVencidaOffline => _offlineSessionService?.sesionVencida ?? false;
+  Duration get tiempoRestanteOffline => _offlineSessionService?.tiempoRestante ?? Duration.zero;
+  int get intentosRestantesOffline => _offlineSessionService?.intentosRestantes ?? 5;
+
+  Future<bool> renovarSesionOffline() async {
+    return await _offlineSessionService?.renovarToken() ?? false;
+  }
+
+  Future<void> cerrarSesionOffline() async {
+    await _offlineSessionService?.cerrarSesionOffline();
+  }
+
+  Future<Map<String, dynamic>> estadoSesionOffline() async {
+    return await _offlineSessionService?.estadoSesion() ?? <String, dynamic>{};
+  }
+
+  Future<void> borrarDatosDelTenant(int tenantId) async {
+    await _localDatabaseService?.borrarPorTenant(tenantId);
+  }
 
   /// Inicia sesión con correo y contraseña.
   /// POST /api/v1/auth/login
@@ -16,10 +69,7 @@ class AuthService {
     try {
       final response = await apiService.dio.post(
         AppConstants.epLogin,
-        data: {
-          'correo': email.trim().toLowerCase(),
-          'contrasena': password,
-        },
+        data: {'correo': email.trim().toLowerCase(), 'contrasena': password},
       );
       return TokenResponse.fromJson(response.data as Map<String, dynamic>);
     } catch (e) {
@@ -47,7 +97,8 @@ class AuthService {
           'correo': correo.trim().toLowerCase(),
           'telefono': telefono.trim(),
           'nit_ci': nitCi.trim(),
-          'direccion_envio': (direccionEnvio != null && direccionEnvio.trim().isNotEmpty)
+          'direccion_envio':
+              (direccionEnvio != null && direccionEnvio.trim().isNotEmpty)
               ? direccionEnvio.trim()
               : null,
           'contrasena': contrasena,

@@ -25,7 +25,8 @@ class _BranchSelectorPageState extends State<BranchSelectorPage> {
       provider.loadBranches().then((_) {
         if (provider.branches.isNotEmpty && mounted) {
           setState(() {
-            _selectedBranch = provider.selectedBranch ?? provider.branches.first;
+            _selectedBranch =
+                provider.selectedBranch ?? provider.branches.first;
           });
           _mapController.move(
             LatLng(_selectedBranch!.latitud, _selectedBranch!.longitud),
@@ -40,18 +41,13 @@ class _BranchSelectorPageState extends State<BranchSelectorPage> {
     setState(() {
       _selectedBranch = branch;
     });
-    _mapController.move(
-      LatLng(branch.latitud, branch.longitud),
-      14.5,
-    );
+    _mapController.move(LatLng(branch.latitud, branch.longitud), 14.5);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Seleccionar Sucursal'),
-      ),
+      appBar: AppBar(title: const Text('Seleccionar Sucursal')),
       body: Consumer<ReservationProvider>(
         builder: (context, provider, child) {
           if (provider.isLoadingBranches && provider.branches.isEmpty) {
@@ -78,7 +74,8 @@ class _BranchSelectorPageState extends State<BranchSelectorPage> {
                 ),
                 children: [
                   TileLayer(
-                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    urlTemplate:
+                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                     userAgentPackageName: 'com.fashionstore.mobile',
                   ),
                   MarkerLayer(
@@ -93,7 +90,9 @@ class _BranchSelectorPageState extends State<BranchSelectorPage> {
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 250),
                             decoration: BoxDecoration(
-                              color: isSelected ? AppColors.accent : AppColors.primary,
+                              color: isSelected
+                                  ? AppColors.accent
+                                  : AppColors.primary,
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
@@ -148,7 +147,11 @@ class _BranchSelectorPageState extends State<BranchSelectorPage> {
                                 color: AppColors.accent.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: const Icon(Icons.store, color: AppColors.accent, size: 24),
+                              child: const Icon(
+                                Icons.store,
+                                color: AppColors.accent,
+                                size: 24,
+                              ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -164,7 +167,9 @@ class _BranchSelectorPageState extends State<BranchSelectorPage> {
                                   ),
                                   Text(
                                     _selectedBranch!.direccion,
-                                    style: Theme.of(context).textTheme.bodySmall,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodySmall,
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -177,7 +182,11 @@ class _BranchSelectorPageState extends State<BranchSelectorPage> {
                         Row(
                           children: [
                             if (_selectedBranch!.telefono != null) ...[
-                              const Icon(Icons.phone, size: 14, color: AppColors.textSecondary),
+                              const Icon(
+                                Icons.phone,
+                                size: 14,
+                                color: AppColors.textSecondary,
+                              ),
                               const SizedBox(width: 4),
                               Text(
                                 _selectedBranch!.telefono!,
@@ -185,7 +194,11 @@ class _BranchSelectorPageState extends State<BranchSelectorPage> {
                               ),
                               const SizedBox(width: 16),
                             ],
-                            const Icon(Icons.access_time, size: 14, color: AppColors.textSecondary),
+                            const Icon(
+                              Icons.access_time,
+                              size: 14,
+                              color: AppColors.textSecondary,
+                            ),
                             const SizedBox(width: 4),
                             Text(
                               '${_selectedBranch!.horarioApertura ?? '10:00'} - ${_selectedBranch!.horarioCierre ?? '22:00'}',
@@ -196,7 +209,9 @@ class _BranchSelectorPageState extends State<BranchSelectorPage> {
                         const SizedBox(height: 16),
                         ElevatedButton(
                           onPressed: () {
-                            context.read<ReservationProvider>().selectBranch(_selectedBranch!);
+                            context.read<ReservationProvider>().selectBranch(
+                              _selectedBranch!,
+                            );
                             Navigator.pop(context, _selectedBranch);
                           },
                           style: ElevatedButton.styleFrom(

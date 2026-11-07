@@ -32,9 +32,7 @@ class StarRating extends StatelessWidget {
         final starNumber = i + 1;
         IconData icon;
         if (editable) {
-          icon = starNumber <= value.round()
-              ? Icons.star
-              : Icons.star_border;
+          icon = starNumber <= value.round() ? Icons.star : Icons.star_border;
         } else if (i < full) {
           icon = Icons.star;
         } else if (i == full && hasHalf) {

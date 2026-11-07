@@ -26,13 +26,15 @@ class ChatBubble extends StatelessWidget {
 
   /// Guarda o quita un producto del chat en favoritos (CU21/CU25).
   static Future<void> _toggleFavorite(
-      BuildContext context, int productoId, bool isFav) async {
+    BuildContext context,
+    int productoId,
+    bool isFav,
+  ) async {
     final auth = context.read<AuthProvider>();
     if (!auth.isAuthenticated) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content:
-              const Text('Inicia sesión para guardar tus favoritos'),
+          content: const Text('Inicia sesión para guardar tus favoritos'),
           action: SnackBarAction(
             label: 'Ingresar',
             textColor: Colors.white,
@@ -46,8 +48,7 @@ class ChatBubble extends StatelessWidget {
     final favs = context.read<FavoritesProvider>();
     await favs.toggle(productoId);
     if (!context.mounted) return;
-    if (favs.errorMessage != null &&
-        favs.isFavorite(productoId) == isFav) {
+    if (favs.errorMessage != null && favs.isFavorite(productoId) == isFav) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(favs.errorMessage!),
@@ -57,14 +58,16 @@ class ChatBubble extends StatelessWidget {
     }
   }
 
-  String? _extractImageUrl(dynamic p) {    if (p is! Map) return null;
+  String? _extractImageUrl(dynamic p) {
+    if (p is! Map) return null;
     if (p['imagen_url'] != null && p['imagen_url'].toString().isNotEmpty) {
       return p['imagen_url'].toString();
     }
     if (p['imagen'] != null && p['imagen'].toString().isNotEmpty) {
       return p['imagen'].toString();
     }
-    if (p['imagen_principal'] != null && p['imagen_principal'].toString().isNotEmpty) {
+    if (p['imagen_principal'] != null &&
+        p['imagen_principal'].toString().isNotEmpty) {
       return p['imagen_principal'].toString();
     }
     final imgs = p['imagenes'];
@@ -95,14 +98,19 @@ class ChatBubble extends StatelessWidget {
     final timeFormat = DateFormat('HH:mm');
     final prods = message.productosMencionados;
     final hasProducts = prods != null && prods.isNotEmpty;
-    final isOutfit = message.tipoRespuesta == 'outfit' ||
-        (hasProducts && prods.length >= 2 && message.content.toLowerCase().contains('look') ||
+    final isOutfit =
+        message.tipoRespuesta == 'outfit' ||
+        (hasProducts &&
+                prods.length >= 2 &&
+                message.content.toLowerCase().contains('look') ||
             message.content.toLowerCase().contains('outfit'));
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
-        mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isUser
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isUser) ...[
@@ -127,7 +135,9 @@ class ChatBubble extends StatelessWidget {
           ],
           Flexible(
             child: Column(
-              crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              crossAxisAlignment: isUser
+                  ? CrossAxisAlignment.end
+                  : CrossAxisAlignment.start,
               children: [
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -139,8 +149,12 @@ class ChatBubble extends StatelessWidget {
                     borderRadius: BorderRadius.only(
                       topLeft: const Radius.circular(18),
                       topRight: const Radius.circular(18),
-                      bottomLeft: isUser ? const Radius.circular(18) : const Radius.circular(4),
-                      bottomRight: isUser ? const Radius.circular(4) : const Radius.circular(18),
+                      bottomLeft: isUser
+                          ? const Radius.circular(18)
+                          : const Radius.circular(4),
+                      bottomRight: isUser
+                          ? const Radius.circular(4)
+                          : const Radius.circular(18),
                     ),
                     boxShadow: [
                       BoxShadow(
@@ -166,7 +180,9 @@ class ChatBubble extends StatelessWidget {
                         timeFormat.format(message.timestamp),
                         style: GoogleFonts.inter(
                           fontSize: 10,
-                          color: isUser ? Colors.white.withOpacity(0.7) : AppColors.textLight,
+                          color: isUser
+                              ? Colors.white.withOpacity(0.7)
+                              : AppColors.textLight,
                         ),
                       ),
                     ],
@@ -214,7 +230,10 @@ class ChatBubble extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.accent.withOpacity(0.4), width: 1.5),
+        border: Border.all(
+          color: AppColors.accent.withOpacity(0.4),
+          width: 1.5,
+        ),
         boxShadow: [
           BoxShadow(
             color: AppColors.accent.withOpacity(0.06),
@@ -234,7 +253,11 @@ class ChatBubble extends StatelessWidget {
                   color: AppColors.accent.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.checkroom, color: AppColors.accent, size: 16),
+                child: const Icon(
+                  Icons.checkroom,
+                  color: AppColors.accent,
+                  size: 16,
+                ),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -261,7 +284,9 @@ class ChatBubble extends StatelessWidget {
                 final p = products[index];
                 final isMap = p is Map;
                 final rawId = isMap ? p['id'] : null;
-                final int? id = rawId is int ? rawId : (rawId != null ? int.tryParse(rawId.toString()) : null);
+                final int? id = rawId is int
+                    ? rawId
+                    : (rawId != null ? int.tryParse(rawId.toString()) : null);
                 final nombre = isMap ? (p['nombre']?.toString() ?? '') : '';
                 final precio = isMap ? ((p['precio'] as num?) ?? 0) : 0;
                 final img = _extractImageUrl(p);
@@ -280,7 +305,9 @@ class ChatBubble extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         ClipRRect(
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(12),
+                          ),
                           child: SizedBox(
                             height: 75,
                             width: double.infinity,
@@ -288,9 +315,15 @@ class ChatBubble extends StatelessWidget {
                                 ? CachedNetworkImage(
                                     imageUrl: img,
                                     fit: BoxFit.cover,
-                                    errorWidget: (_, __, ___) => const Icon(Icons.checkroom, color: AppColors.accent),
+                                    errorWidget: (_, __, ___) => const Icon(
+                                      Icons.checkroom,
+                                      color: AppColors.accent,
+                                    ),
                                   )
-                                : const Icon(Icons.checkroom, color: AppColors.accent),
+                                : const Icon(
+                                    Icons.checkroom,
+                                    color: AppColors.accent,
+                                  ),
                           ),
                         ),
                         Padding(
@@ -302,7 +335,10 @@ class ChatBubble extends StatelessWidget {
                                 nombre,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w600),
+                                style: GoogleFonts.inter(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                               const SizedBox(height: 2),
                               Text(
@@ -332,7 +368,10 @@ class ChatBubble extends StatelessWidget {
                 children: [
                   Text(
                     'Total del look:',
-                    style: GoogleFonts.inter(fontSize: 10, color: AppColors.textLight),
+                    style: GoogleFonts.inter(
+                      fontSize: 10,
+                      color: AppColors.textLight,
+                    ),
                   ),
                   Text(
                     'Bs. ${total.toStringAsFixed(2)}',
@@ -345,24 +384,37 @@ class ChatBubble extends StatelessWidget {
                 ],
               ),
               ElevatedButton.icon(
-                onPressed: isAddingToCart ? null : () => onAddOutfitToCart?.call(products),
+                onPressed: isAddingToCart
+                    ? null
+                    : () => onAddOutfitToCart?.call(products),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.accent,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                   elevation: 0,
                 ),
                 icon: isAddingToCart
                     ? const SizedBox(
                         width: 14,
                         height: 14,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
                     : const Icon(Icons.shopping_cart_outlined, size: 16),
                 label: Text(
                   isAddingToCart ? 'Agregando...' : 'Agregar Look',
-                  style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600),
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
@@ -376,7 +428,9 @@ class ChatBubble extends StatelessWidget {
   Widget _buildSingleProductCard(BuildContext context, dynamic p) {
     final isMap = p is Map;
     final rawId = isMap ? p['id'] : null;
-    final int? id = rawId is int ? rawId : (rawId != null ? int.tryParse(rawId.toString()) : null);
+    final int? id = rawId is int
+        ? rawId
+        : (rawId != null ? int.tryParse(rawId.toString()) : null);
     final nombre = isMap ? (p['nombre']?.toString() ?? '') : '';
     final categoria = isMap ? (p['categoria']?.toString() ?? '') : '';
     final descripcion = isMap ? (p['descripcion']?.toString() ?? '') : '';
@@ -412,7 +466,10 @@ class ChatBubble extends StatelessWidget {
                       ? CachedNetworkImage(
                           imageUrl: img,
                           fit: BoxFit.cover,
-                          errorWidget: (_, __, ___) => const Icon(Icons.checkroom, color: AppColors.accent),
+                          errorWidget: (_, __, ___) => const Icon(
+                            Icons.checkroom,
+                            color: AppColors.accent,
+                          ),
                         )
                       : const Icon(Icons.checkroom, color: AppColors.accent),
                 ),
@@ -446,7 +503,10 @@ class ChatBubble extends StatelessWidget {
                         descripcion,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.inter(fontSize: 11, color: AppColors.textLight),
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          color: AppColors.textLight,
+                        ),
                       ),
                     const SizedBox(height: 4),
                     Text(
@@ -472,9 +532,7 @@ class ChatBubble extends StatelessWidget {
                     final isFav = favs.isFavorite(id);
                     return IconButton(
                       icon: Icon(
-                        isFav
-                            ? Icons.favorite
-                            : Icons.favorite_border,
+                        isFav ? Icons.favorite : Icons.favorite_border,
                         size: 20,
                         color: isFav
                             ? AppColors.accent
@@ -483,20 +541,26 @@ class ChatBubble extends StatelessWidget {
                       tooltip: isFav
                           ? 'Quitar de favoritos'
                           : 'Guardar en favoritos',
-                      onPressed: () =>
-                          _toggleFavorite(context, id, isFav),
+                      onPressed: () => _toggleFavorite(context, id, isFav),
                     );
                   },
                 ),
               Expanded(
                 child: OutlinedButton(
-                  onPressed: id != null ? () => context.push('/catalog/$id') : null,
+                  onPressed: id != null
+                      ? () => context.push('/catalog/$id')
+                      : null,
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     side: BorderSide(color: Colors.grey.shade300),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
-                  child: Text('Ver detalle', style: GoogleFonts.inter(fontSize: 12)),
+                  child: Text(
+                    'Ver detalle',
+                    style: GoogleFonts.inter(fontSize: 12),
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
@@ -507,11 +571,19 @@ class ChatBubble extends StatelessWidget {
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 8),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                     elevation: 0,
                   ),
                   icon: const Icon(Icons.add_shopping_cart, size: 15),
-                  label: Text('+ Carrito', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600)),
+                  label: Text(
+                    '+ Carrito',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -522,7 +594,10 @@ class ChatBubble extends StatelessWidget {
   }
 
   // --- MULTIPLE PRODUCTS HORIZONTAL LIST ---
-  Widget _buildMentionedProductsList(BuildContext context, List<dynamic> products) {
+  Widget _buildMentionedProductsList(
+    BuildContext context,
+    List<dynamic> products,
+  ) {
     return SizedBox(
       height: 180,
       child: ListView.separated(
@@ -533,7 +608,9 @@ class ChatBubble extends StatelessWidget {
           final p = products[index];
           final isMap = p is Map;
           final rawId = isMap ? p['id'] : null;
-          final int? id = rawId is int ? rawId : (rawId != null ? int.tryParse(rawId.toString()) : null);
+          final int? id = rawId is int
+              ? rawId
+              : (rawId != null ? int.tryParse(rawId.toString()) : null);
           final nombre = isMap ? (p['nombre']?.toString() ?? '') : '';
           final categoria = isMap ? (p['categoria']?.toString() ?? '') : '';
           final precio = isMap ? ((p['precio'] as num?) ?? 0) : 0;
@@ -558,9 +635,13 @@ class ChatBubble extends StatelessWidget {
               children: [
                 InkWell(
                   onTap: id != null ? () => context.push('/catalog/$id') : null,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(14),
+                  ),
                   child: ClipRRect(
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(14),
+                    ),
                     child: SizedBox(
                       height: 85,
                       width: double.infinity,
@@ -568,27 +649,44 @@ class ChatBubble extends StatelessWidget {
                           ? CachedNetworkImage(
                               imageUrl: img,
                               fit: BoxFit.cover,
-                              errorWidget: (_, __, ___) => const Icon(Icons.checkroom, color: AppColors.accent),
+                              errorWidget: (_, __, ___) => const Icon(
+                                Icons.checkroom,
+                                color: AppColors.accent,
+                              ),
                             )
-                          : const Icon(Icons.checkroom, color: AppColors.accent),
+                          : const Icon(
+                              Icons.checkroom,
+                              color: AppColors.accent,
+                            ),
                     ),
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 6,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (categoria.isNotEmpty)
                         Text(
                           categoria,
-                          style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.bold, color: AppColors.accent),
+                          style: GoogleFonts.inter(
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.accent,
+                          ),
                         ),
                       Text(
                         nombre,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textDark),
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textDark,
+                        ),
                       ),
                       const SizedBox(height: 2),
                       Row(
@@ -596,7 +694,11 @@ class ChatBubble extends StatelessWidget {
                         children: [
                           Text(
                             'Bs. ${precio.toStringAsFixed(2)}',
-                            style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary),
+                            style: GoogleFonts.inter(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primary,
+                            ),
                           ),
                           InkWell(
                             onTap: () => onAddProductToCart?.call(p),
@@ -607,7 +709,11 @@ class ChatBubble extends StatelessWidget {
                                 color: AppColors.primary.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(6),
                               ),
-                              child: const Icon(Icons.add_shopping_cart, size: 14, color: AppColors.primary),
+                              child: const Icon(
+                                Icons.add_shopping_cart,
+                                size: 14,
+                                color: AppColors.primary,
+                              ),
                             ),
                           ),
                         ],

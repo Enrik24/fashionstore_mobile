@@ -7,7 +7,7 @@ class ReturnProvider extends ChangeNotifier {
   final ReturnService _service;
 
   ReturnProvider({required ReturnService returnService})
-      : _service = returnService;
+    : _service = returnService;
 
   List<ReturnRequestModel> _requests = [];
   bool _isLoading = false;
@@ -94,4 +94,111 @@ class ReturnProvider extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
   }
+
+  // ====================================================================
+  // [EXAMEN-2] Fase 3 (CU13/CU18): operaciones offline del cliente/cajero.
+  // No tocan la lista online; el detalle local se lee por uuid.
+  // ====================================================================
+
+  List<ReturnRequestModel> _localRequests = const [];
+
+  List<ReturnRequestModel> get localRequests => _localRequests;
+
+  /// CU13: crea una devolución pura offline y la antepone en local.
+  Future<ReturnRequestModel?> crearDevolucionOffline({
+    required String numeroComprobanteOrigen,
+    int? ordenOrigenId,
+    int? sucursalId,
+    int? clienteId,
+    String motivo = MotivosDevolucion.tallaIncorrecta,
+    String? motivoDetalle,
+    required List<LineaDevolucion> items,
+    bool saldoFavor = false,
+    DateTime? fechaCambioLimite,
+  }) async {
+    _isSubmitting = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      final creada = await _service.crearDevolucionOffline(
+        numeroComprobanteOrigen: numeroComprobanteOrigen,
+        ordenOrigenId: ordenOrigenId,
+        sucursalId: sucursalId,
+        clienteId: clienteId,
+        motivo: motivo,
+        motivoDetalle: motivoDetalle,
+        items: items,
+        saldoFavor: saldoFavor,
+        fechaCambioLimite: fechaCambioLimite,
+      );
+      _localRequests = [creada, ..._localRequests];
+      return creada;
+    } catch (e) {
+      _errorMessage = e.toString();
+      return null;
+    } finally {
+      _isSubmitting = false;
+      notifyListeners();
+    }
+  }
+
+  /// CU18: crea una reposición offline.
+  Future<ReturnRequestModel?> crearReposicionOffline({
+    required String numeroComprobanteOrigen,
+    int? ordenOrigenId,
+    int? sucursalId,
+    int? clienteId,
+    String motivo = MotivosDevolucion.tallaIncorrecta,
+    String? motivoDetalle,
+    required List<LineaDevolucion> items,
+    DateTime? fechaCambioLimite,
+  }) async {
+    _isSubmitting = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      final creada = await _service.crearReposicionOffline(
+        numeroComprobanteOrigen: numeroComprobanteOrigen,
+        ordenOrigenId: ordenOrigenId,
+        sucursalId: sucursalId,
+        clienteId: clienteId,
+        motivo: motivo,
+        motivoDetalle: motivoDetalle,
+        items: items,
+        fechaCambioLimite: fechaCambioLimite,
+      );
+      _localRequests = [creada, ..._localRequests];
+      return creada;
+    } catch (e) {
+      _errorMessage = e.toString();
+      return null;
+    } finally {
+      _isSubmitting = false;
+      notifyListeners();
+    }
+  }
+
+  /// Alias legacy CAMBIO == reposición.
+  Future<ReturnRequestModel?> crearCambioOffline({
+    required String numeroComprobanteOrigen,
+    int? ordenOrigenId,
+    int? sucursalId,
+    int? clienteId,
+    String motivo = MotivosDevolucion.tallaIncorrecta,
+    String? motivoDetalle,
+    required List<LineaDevolucion> items,
+    DateTime? fechaCambioLimite,
+  }) => crearReposicionOffline(
+    numeroComprobanteOrigen: numeroComprobanteOrigen,
+    ordenOrigenId: ordenOrigenId,
+    sucursalId: sucursalId,
+    clienteId: clienteId,
+    motivo: motivo,
+    motivoDetalle: motivoDetalle,
+    items: items,
+    fechaCambioLimite: fechaCambioLimite,
+  );
+
+  Future<ReturnRequestModel?> getSolicitudDesdeLocal(String uuidOffline) =>
+      _service.getSolicitudDesdeLocal(uuidOffline);
 }

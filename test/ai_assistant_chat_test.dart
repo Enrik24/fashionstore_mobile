@@ -27,7 +27,11 @@ import 'package:fashionstore_mobile/features/ai_assistant/ai_assistant_page.dart
 const Map<String, dynamic> _outfitResponse = {
   'respuesta':
       'Te propongo un look veraniego: polera de algodón, short cargo, gorra y cinturón de cuero.',
-  'sugerencias': ['¿Ver más poleras?', '¿Combinar con calzado?', 'Promociones de verano'],
+  'sugerencias': [
+    '¿Ver más poleras?',
+    '¿Combinar con calzado?',
+    'Promociones de verano',
+  ],
   'productos_mencionados': [
     {
       'id': 6,
@@ -93,12 +97,12 @@ class _FakeHttpAdapter implements HttpClientAdapter {
   }
 
   ResponseBody _json(Map<String, dynamic> body) => ResponseBody.fromString(
-        jsonEncode(body),
-        200,
-        headers: {
-          Headers.contentTypeHeader: [Headers.jsonContentType],
-        },
-      );
+    jsonEncode(body),
+    200,
+    headers: {
+      Headers.contentTypeHeader: [Headers.jsonContentType],
+    },
+  );
 
   @override
   void close({bool force = false}) {}
@@ -107,7 +111,7 @@ class _FakeHttpAdapter implements HttpClientAdapter {
 /// StorageService sin plugins nativos (secure storage / prefs reales).
 class _FakeStorageService extends StorageService {
   _FakeStorageService(SharedPreferences prefs)
-      : super(secureStorage: const FlutterSecureStorage(), prefs: prefs);
+    : super(secureStorage: const FlutterSecureStorage(), prefs: prefs);
 
   String? _token;
 
@@ -193,8 +197,9 @@ void main() {
   }
 
   group('Asistente virtual (app móvil)', () {
-    testWidgets('responde a una consulta escrita por teclado (outfit)',
-        (tester) async {
+    testWidgets('responde a una consulta escrita por teclado (outfit)', (
+      tester,
+    ) async {
       await tester.pumpWidget(await buildAssistantApp());
       await tester.pump(); // ejecuta el post-frame de initState
 
@@ -230,4 +235,3 @@ void main() {
     });
   });
 }
-

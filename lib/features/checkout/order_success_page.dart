@@ -92,7 +92,8 @@ class _OrderSuccessPageState extends State<OrderSuccessPage> {
       }
       final stillPending = _order?.isPending ?? true;
       if (!ok) {
-        _verifyError = checkout.errorMessage ??
+        _verifyError =
+            checkout.errorMessage ??
             'Aún no se detecta el pago. Si ya pagaste, espera unos segundos y reintenta.';
       } else if (stillPending) {
         // El backend confirmó la consulta pero Stripe aún no marca pagado.
@@ -131,9 +132,7 @@ class _OrderSuccessPageState extends State<OrderSuccessPage> {
                     width: 100,
                     height: 100,
                     decoration: BoxDecoration(
-                      color: (pending
-                              ? AppColors.warning
-                              : AppColors.success)
+                      color: (pending ? AppColors.warning : AppColors.success)
                           .withOpacity(0.12),
                       shape: BoxShape.circle,
                     ),
@@ -157,11 +156,13 @@ class _OrderSuccessPageState extends State<OrderSuccessPage> {
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    pending ? '¡Pedido en espera de pago!' : '¡Pedido Confirmado!',
+                    pending
+                        ? '¡Pedido en espera de pago!'
+                        : '¡Pedido Confirmado!',
                     style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -170,8 +171,8 @@ class _OrderSuccessPageState extends State<OrderSuccessPage> {
                         : 'Gracias por tu compra. Hemos recibido tu pedido correctamente y pronto comenzaremos a prepararlo.',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                   if (_verifyError != null) ...[
                     const SizedBox(height: 12),
@@ -180,12 +181,17 @@ class _OrderSuccessPageState extends State<OrderSuccessPage> {
                       decoration: BoxDecoration(
                         color: AppColors.error.withOpacity(0.08),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.error.withOpacity(0.3)),
+                        border: Border.all(
+                          color: AppColors.error.withOpacity(0.3),
+                        ),
                       ),
                       child: Text(
                         _verifyError!,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(color: AppColors.error, fontSize: 13),
+                        style: const TextStyle(
+                          color: AppColors.error,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
                   ],
@@ -205,23 +211,16 @@ class _OrderSuccessPageState extends State<OrderSuccessPage> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text('N° de Orden:', style: TextStyle(color: AppColors.textSecondary)),
+                              const Text(
+                                'N° de Orden:',
+                                style: TextStyle(
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
                               Text(
                                 order.numeroOrden,
-                                style: const TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ),
-                          const Divider(height: 20),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text('Estado:', style: TextStyle(color: AppColors.textSecondary)),
-                              Text(
-                                order.estado,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  color: pending ? AppColors.warning : AppColors.success,
                                 ),
                               ),
                             ],
@@ -230,10 +229,38 @@ class _OrderSuccessPageState extends State<OrderSuccessPage> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text('Método de Pago:', style: TextStyle(color: AppColors.textSecondary)),
+                              const Text(
+                                'Estado:',
+                                style: TextStyle(
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                              Text(
+                                order.estado,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: pending
+                                      ? AppColors.warning
+                                      : AppColors.success,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const Divider(height: 20),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Método de Pago:',
+                                style: TextStyle(
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
                               Text(
                                 order.metodoPago ?? 'Stripe',
-                                style: const TextStyle(fontWeight: FontWeight.bold),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ],
                           ),
@@ -243,13 +270,20 @@ class _OrderSuccessPageState extends State<OrderSuccessPage> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('Entrega:', style: TextStyle(color: AppColors.textSecondary)),
+                                const Text(
+                                  'Entrega:',
+                                  style: TextStyle(
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Text(
                                     '${order.direccionEnvio!}, ${order.ciudadEnvio ?? 'Santa Cruz'}',
                                     textAlign: TextAlign.end,
-                                    style: const TextStyle(fontWeight: FontWeight.w600),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -261,7 +295,9 @@ class _OrderSuccessPageState extends State<OrderSuccessPage> {
                             children: [
                               Text(
                                 pending ? 'Total a pagar:' : 'Total Pagado:',
-                                style: const TextStyle(color: AppColors.textSecondary),
+                                style: const TextStyle(
+                                  color: AppColors.textSecondary,
+                                ),
                               ),
                               Text(
                                 currencyFormatter.format(order.total),
@@ -283,7 +319,11 @@ class _OrderSuccessPageState extends State<OrderSuccessPage> {
                     ElevatedButton.icon(
                       onPressed: _verifying ? null : _verifyPayment,
                       icon: const Icon(Icons.verified_outlined, size: 18),
-                      label: Text(_verifying ? 'Verificando pago...' : 'Ya pagué, verificar pago'),
+                      label: Text(
+                        _verifying
+                            ? 'Verificando pago...'
+                            : 'Ya pagué, verificar pago',
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.accent,
                         foregroundColor: Colors.white,
@@ -301,13 +341,11 @@ class _OrderSuccessPageState extends State<OrderSuccessPage> {
                     OutlinedButton.icon(
                       onPressed: () =>
                           context.push('/profile/orders/${order.id}'),
-                      icon: const Icon(Icons.receipt_long_outlined,
-                          size: 18),
+                      icon: const Icon(Icons.receipt_long_outlined, size: 18),
                       label: const Text('Ver mi factura'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.accent,
-                        side: const BorderSide(
-                            color: AppColors.accent),
+                        side: const BorderSide(color: AppColors.accent),
                         minimumSize: const Size.fromHeight(50),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -326,7 +364,10 @@ class _OrderSuccessPageState extends State<OrderSuccessPage> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: const Text('Volver al Inicio', style: TextStyle(fontWeight: FontWeight.bold)),
+                    child: const Text(
+                      'Volver al Inicio',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
                   const SizedBox(height: 12),
                   OutlinedButton(

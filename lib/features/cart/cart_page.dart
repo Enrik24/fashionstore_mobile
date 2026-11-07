@@ -40,7 +40,8 @@ class _CartPageState extends State<CartPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-              '$removed producto(s) se agotaron y fueron retirados del carrito'),
+            '$removed producto(s) se agotaron y fueron retirados del carrito',
+          ),
           backgroundColor: AppColors.warning,
         ),
       );
@@ -51,12 +52,12 @@ class _CartPageState extends State<CartPage> {
   void _goToCheckout(CartProvider provider) {
     final excedidos = provider.itemsExceedingStock();
     if (excedidos.isNotEmpty) {
-      final nombres =
-          excedidos.map((e) => e.productoNombre).take(3).join(', ');
+      final nombres = excedidos.map((e) => e.productoNombre).take(3).join(', ');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-              'Stock insuficiente para: $nombres. Ajusta las cantidades.'),
+            'Stock insuficiente para: $nombres. Ajusta las cantidades.',
+          ),
           backgroundColor: AppColors.warning,
           duration: const Duration(seconds: 4),
         ),
@@ -69,10 +70,12 @@ class _CartPageState extends State<CartPage> {
   /// Reserva las prendas del carrito para probar en tienda (CU12).
   void _reserveFromCart(CartProvider provider) {
     final items = provider.items
-        .map((e) => {
-              'variante_producto_id': e.varianteProductoId,
-              'cantidad': e.cantidad,
-            })
+        .map(
+          (e) => {
+            'variante_producto_id': e.varianteProductoId,
+            'cantidad': e.cantidad,
+          },
+        )
         .toList();
     context.push('/reservations/create', extra: {'items': items});
   }
@@ -82,7 +85,9 @@ class _CartPageState extends State<CartPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Vaciar Carrito'),
-        content: const Text('¿Estás seguro de que deseas eliminar todos los productos de tu carrito?'),
+        content: const Text(
+          '¿Estás seguro de que deseas eliminar todos los productos de tu carrito?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -93,7 +98,10 @@ class _CartPageState extends State<CartPage> {
               Navigator.pop(context);
               context.read<CartProvider>().clearCart();
             },
-            child: const Text('Vaciar', style: TextStyle(color: AppColors.error)),
+            child: const Text(
+              'Vaciar',
+              style: TextStyle(color: AppColors.error),
+            ),
           ),
         ],
       ),
@@ -113,11 +121,17 @@ class _CartPageState extends State<CartPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.shopping_bag_outlined, size: 72, color: AppColors.textMuted),
+                const Icon(
+                  Icons.shopping_bag_outlined,
+                  size: 72,
+                  color: AppColors.textMuted,
+                ),
                 const SizedBox(height: 16),
                 Text(
                   'Inicia sesión para ver tu carrito',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
@@ -147,7 +161,10 @@ class _CartPageState extends State<CartPage> {
             builder: (context, provider, _) {
               if (provider.isEmpty) return const SizedBox.shrink();
               return IconButton(
-                icon: const Icon(Icons.delete_sweep_outlined, color: AppColors.textSecondary),
+                icon: const Icon(
+                  Icons.delete_sweep_outlined,
+                  color: AppColors.textSecondary,
+                ),
                 tooltip: 'Vaciar carrito',
                 onPressed: _confirmClearCart,
               );
@@ -186,8 +203,8 @@ class _CartPageState extends State<CartPage> {
                     Text(
                       'Tu carrito está vacío',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -198,11 +215,20 @@ class _CartPageState extends State<CartPage> {
                     const SizedBox(height: 24),
                     ElevatedButton.icon(
                       onPressed: () => context.go('/catalog'),
-                      icon: const Icon(Icons.storefront_outlined, color: Colors.white),
-                      label: const Text('Explorar Catálogo', style: TextStyle(color: Colors.white)),
+                      icon: const Icon(
+                        Icons.storefront_outlined,
+                        color: Colors.white,
+                      ),
+                      label: const Text(
+                        'Explorar Catálogo',
+                        style: TextStyle(color: Colors.white),
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.accent,
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 12,
+                        ),
                       ),
                     ),
                   ],
@@ -254,13 +280,11 @@ class _CartPageState extends State<CartPage> {
                     width: double.infinity,
                     child: OutlinedButton.icon(
                       onPressed: () => _reserveFromCart(provider),
-                      icon: const Icon(Icons.bookmark_add_outlined,
-                          size: 18),
+                      icon: const Icon(Icons.bookmark_add_outlined, size: 18),
                       label: const Text('Reservar para probar en tienda'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.primary,
-                        side: const BorderSide(
-                            color: AppColors.primary),
+                        side: const BorderSide(color: AppColors.primary),
                         minimumSize: const Size.fromHeight(46),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),

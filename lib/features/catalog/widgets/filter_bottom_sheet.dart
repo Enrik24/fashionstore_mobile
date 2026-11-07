@@ -93,7 +93,12 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
             children: [
               // Handle & Header
               Padding(
-                padding: const EdgeInsets.only(top: 14, left: 20, right: 20, bottom: 8),
+                padding: const EdgeInsets.only(
+                  top: 14,
+                  left: 20,
+                  right: 20,
+                  bottom: 8,
+                ),
                 child: Column(
                   children: [
                     Center(
@@ -112,13 +117,16 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.filter_list_rounded, color: AppColors.primary, size: 22),
+                            const Icon(
+                              Icons.filter_list_rounded,
+                              color: AppColors.primary,
+                              size: 22,
+                            ),
                             const SizedBox(width: 8),
                             Text(
                               'Filtros de Búsqueda',
-                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                              style: Theme.of(context).textTheme.titleLarge
+                                  ?.copyWith(fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),
@@ -138,7 +146,11 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                               _tempGenero = null;
                             });
                           },
-                          icon: const Icon(Icons.refresh, size: 16, color: AppColors.accent),
+                          icon: const Icon(
+                            Icons.refresh,
+                            size: 16,
+                            color: AppColors.accent,
+                          ),
                           label: const Text(
                             'Limpiar',
                             style: TextStyle(
@@ -156,15 +168,22 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
 
               // Scrollable Filters Form
               Flexible(
-                child: provider.isLoadingFilterOptions && provider.categories.isEmpty
+                child:
+                    provider.isLoadingFilterOptions &&
+                        provider.categories.isEmpty
                     ? const Center(
                         child: Padding(
                           padding: EdgeInsets.all(32),
-                          child: CircularProgressIndicator(color: AppColors.accent),
+                          child: CircularProgressIndicator(
+                            color: AppColors.accent,
+                          ),
                         ),
                       )
                     : ListView(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 16,
+                        ),
                         children: [
                           // 0. Género (espejo del sidebar web)
                           _buildSectionTitle('Género'),
@@ -240,19 +259,21 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                 child: ElevatedButton(
                   onPressed: () {
                     context.read<CatalogProvider>().applyFilters(
-                          categoryId: _tempCategoryId,
-                          categoryName: _tempCategoryName,
-                          temporadaId: _tempTemporadaId,
-                          temporadaName: _tempTemporadaName,
-                          tallaId: _tempTallaId,
-                          tallaValor: _tempTallaValor,
-                          colorId: _tempColorId,
-                          colorNombre: _tempColorNombre,
-                          minPrice: _priceRange.start > 0 ? _priceRange.start : null,
-                          maxPrice: _priceRange.end < 1500 ? _priceRange.end : null,
-                          ordering: _tempOrdering,
-                          genero: _tempGenero,
-                        );
+                      categoryId: _tempCategoryId,
+                      categoryName: _tempCategoryName,
+                      temporadaId: _tempTemporadaId,
+                      temporadaName: _tempTemporadaName,
+                      tallaId: _tempTallaId,
+                      tallaValor: _tempTallaValor,
+                      colorId: _tempColorId,
+                      colorNombre: _tempColorNombre,
+                      minPrice: _priceRange.start > 0
+                          ? _priceRange.start
+                          : null,
+                      maxPrice: _priceRange.end < 1500 ? _priceRange.end : null,
+                      ordering: _tempOrdering,
+                      genero: _tempGenero,
+                    );
                     Navigator.pop(context);
                   },
                   style: ElevatedButton.styleFrom(
@@ -296,7 +317,8 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
             side: BorderSide(
-                color: isSelected ? AppColors.primary : AppColors.border),
+              color: isSelected ? AppColors.primary : AppColors.border,
+            ),
           ),
           onSelected: (_) {
             setState(() {
@@ -308,13 +330,14 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
     );
   }
 
-  Widget _buildSectionTitle(String title) {    return Text(
+  Widget _buildSectionTitle(String title) {
+    return Text(
       title,
       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
-            letterSpacing: 0.3,
-          ),
+        fontWeight: FontWeight.bold,
+        color: AppColors.textPrimary,
+        letterSpacing: 0.3,
+      ),
     );
   }
 
@@ -336,7 +359,9 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
           ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
-            side: BorderSide(color: isAll ? AppColors.primary : AppColors.border),
+            side: BorderSide(
+              color: isAll ? AppColors.primary : AppColors.border,
+            ),
           ),
           onSelected: (_) {
             setState(() {
@@ -359,7 +384,9 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
             ),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
-              side: BorderSide(color: isSelected ? AppColors.primary : AppColors.border),
+              side: BorderSide(
+                color: isSelected ? AppColors.primary : AppColors.border,
+              ),
             ),
             onSelected: (selected) {
               setState(() {
@@ -443,7 +470,9 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
           ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
-            side: BorderSide(color: isAll ? AppColors.primary : AppColors.border),
+            side: BorderSide(
+              color: isAll ? AppColors.primary : AppColors.border,
+            ),
           ),
           onSelected: (_) {
             setState(() {
@@ -466,7 +495,9 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
             ),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
-              side: BorderSide(color: isSelected ? AppColors.primary : AppColors.border),
+              side: BorderSide(
+                color: isSelected ? AppColors.primary : AppColors.border,
+              ),
             ),
             onSelected: (selected) {
               setState(() {
@@ -546,8 +577,12 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 10,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                    color: isSelected ? AppColors.accent : AppColors.textSecondary,
+                    fontWeight: isSelected
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+                    color: isSelected
+                        ? AppColors.accent
+                        : AppColors.textSecondary,
                   ),
                 ),
               ),
@@ -576,7 +611,9 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
           ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
-            side: BorderSide(color: isAll ? AppColors.primary : AppColors.border),
+            side: BorderSide(
+              color: isAll ? AppColors.primary : AppColors.border,
+            ),
           ),
           onSelected: (_) {
             setState(() {
@@ -599,7 +636,9 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
             ),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
-              side: BorderSide(color: isSelected ? AppColors.primary : AppColors.border),
+              side: BorderSide(
+                color: isSelected ? AppColors.primary : AppColors.border,
+              ),
             ),
             onSelected: (selected) {
               setState(() {
@@ -636,7 +675,9 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
           ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
-            side: BorderSide(color: isSelected ? AppColors.primary : AppColors.border),
+            side: BorderSide(
+              color: isSelected ? AppColors.primary : AppColors.border,
+            ),
           ),
           onSelected: (selected) {
             setState(() {

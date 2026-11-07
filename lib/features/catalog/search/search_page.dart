@@ -43,7 +43,10 @@ class _SearchPageState extends State<SearchPage> {
             hintStyle: const TextStyle(color: AppColors.textMuted),
             suffixIcon: _searchController.text.isNotEmpty
                 ? IconButton(
-                    icon: const Icon(Icons.clear, color: AppColors.textSecondary),
+                    icon: const Icon(
+                      Icons.clear,
+                      color: AppColors.textSecondary,
+                    ),
                     onPressed: () {
                       _searchController.clear();
                       context.read<CatalogProvider>().clearSearch();
@@ -86,7 +89,11 @@ class _SearchPageState extends State<SearchPage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.search_off_outlined, size: 64, color: AppColors.textMuted),
+                    const Icon(
+                      Icons.search_off_outlined,
+                      size: 64,
+                      color: AppColors.textMuted,
+                    ),
                     const SizedBox(height: 16),
                     Text(
                       'No encontramos resultados',
@@ -123,7 +130,15 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   Widget _buildPopularKeywords(BuildContext context) {
-    final suggestions = ['Vestidos', 'Camisas', 'Pantalones', 'Jeans', 'Chaquetas', 'Blusas', 'Zapatos'];
+    final suggestions = [
+      'Vestidos',
+      'Camisas',
+      'Pantalones',
+      'Jeans',
+      'Chaquetas',
+      'Blusas',
+      'Zapatos',
+    ];
 
     return Padding(
       padding: const EdgeInsets.all(20),
@@ -132,9 +147,9 @@ class _SearchPageState extends State<SearchPage> {
         children: [
           Text(
             'Búsquedas Populares',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
           Wrap(
@@ -143,7 +158,11 @@ class _SearchPageState extends State<SearchPage> {
             children: suggestions.map((keyword) {
               return ActionChip(
                 label: Text(keyword),
-                avatar: const Icon(Icons.trending_up, size: 16, color: AppColors.accent),
+                avatar: const Icon(
+                  Icons.trending_up,
+                  size: 16,
+                  color: AppColors.accent,
+                ),
                 backgroundColor: AppColors.surfaceVariant,
                 onPressed: () {
                   _searchController.text = keyword;

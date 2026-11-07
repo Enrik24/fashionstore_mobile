@@ -12,10 +12,7 @@ import '../../core/widgets/custom_app_bar.dart';
 class ReservationDetailPage extends StatefulWidget {
   final int reservationId;
 
-  const ReservationDetailPage({
-    super.key,
-    required this.reservationId,
-  });
+  const ReservationDetailPage({super.key, required this.reservationId});
 
   @override
   State<ReservationDetailPage> createState() => _ReservationDetailPageState();
@@ -49,7 +46,9 @@ class _ReservationDetailPageState extends State<ReservationDetailPage> {
     }
 
     // First try to find in existing list
-    final existing = provider.reservations.where((r) => r.id == widget.reservationId);
+    final existing = provider.reservations.where(
+      (r) => r.id == widget.reservationId,
+    );
     if (existing.isNotEmpty) {
       _reservation = existing.first;
     }
@@ -71,7 +70,9 @@ class _ReservationDetailPageState extends State<ReservationDetailPage> {
 
   void _resolveBranch(ReservationProvider provider) {
     if (_reservation == null) return;
-    final matches = provider.branches.where((b) => b.id == _reservation!.sucursalId);
+    final matches = provider.branches.where(
+      (b) => b.id == _reservation!.sucursalId,
+    );
     if (matches.isNotEmpty) {
       _branch = matches.first;
     }
@@ -98,7 +99,9 @@ class _ReservationDetailPageState extends State<ReservationDetailPage> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Sí, cancelar'),
@@ -110,7 +113,9 @@ class _ReservationDetailPageState extends State<ReservationDetailPage> {
     if (confirm != true || !mounted) return;
 
     setState(() => _isCancelling = true);
-    final success = await context.read<ReservationProvider>().cancelReservation(widget.reservationId);
+    final success = await context.read<ReservationProvider>().cancelReservation(
+      widget.reservationId,
+    );
     if (mounted) {
       setState(() => _isCancelling = false);
       if (success) {
@@ -160,53 +165,60 @@ class _ReservationDetailPageState extends State<ReservationDetailPage> {
         showBackButton: true,
       ),
       body: _isLoading && _reservation == null
-          ? const Center(child: CircularProgressIndicator(color: AppColors.accent))
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.accent),
+            )
           : _error != null && _reservation == null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.error_outline, size: 64, color: AppColors.error),
-                        const SizedBox(height: 16),
-                        Text(_error!, textAlign: TextAlign.center),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: _loadDetail,
-                          child: const Text('Reintentar'),
-                        ),
-                      ],
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      size: 64,
+                      color: AppColors.error,
                     ),
-                  ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _loadDetail,
-                  color: AppColors.accent,
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildStatusHeader(_reservation!),
-                        const SizedBox(height: 20),
-                        _buildTimeline(_reservation!),
-                        const SizedBox(height: 24),
-                        _buildBranchInfo(_reservation!, dateFormat),
-                        const SizedBox(height: 24),
-                        _buildItemsSection(_reservation!),
-                        if (_reservation!.notas != null && _reservation!.notas!.isNotEmpty) ...[
-                          const SizedBox(height: 24),
-                          _buildNotesCard(_reservation!.notas!),
-                        ],
-                        const SizedBox(height: 32),
-                        if (_reservation!.isPending) _buildCancelButton(),
-                        const SizedBox(height: 24),
-                      ],
+                    const SizedBox(height: 16),
+                    Text(_error!, textAlign: TextAlign.center),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: _loadDetail,
+                      child: const Text('Reintentar'),
                     ),
-                  ),
+                  ],
                 ),
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: _loadDetail,
+              color: AppColors.accent,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildStatusHeader(_reservation!),
+                    const SizedBox(height: 20),
+                    _buildTimeline(_reservation!),
+                    const SizedBox(height: 24),
+                    _buildBranchInfo(_reservation!, dateFormat),
+                    const SizedBox(height: 24),
+                    _buildItemsSection(_reservation!),
+                    if (_reservation!.notas != null &&
+                        _reservation!.notas!.isNotEmpty) ...[
+                      const SizedBox(height: 24),
+                      _buildNotesCard(_reservation!.notas!),
+                    ],
+                    const SizedBox(height: 32),
+                    if (_reservation!.isPending) _buildCancelButton(),
+                    const SizedBox(height: 24),
+                  ],
+                ),
+              ),
+            ),
     );
   }
 
@@ -295,7 +307,11 @@ class _ReservationDetailPageState extends State<ReservationDetailPage> {
     final steps = isCancelled || isExpired
         ? [
             {'title': 'Creada', 'done': true},
-            {'title': isCancelled ? 'Cancelada' : 'Expirada', 'done': true, 'isBad': true},
+            {
+              'title': isCancelled ? 'Cancelada' : 'Expirada',
+              'done': true,
+              'isBad': true,
+            },
           ]
         : [
             {'title': 'Pendiente', 'done': true},
@@ -336,7 +352,9 @@ class _ReservationDetailPageState extends State<ReservationDetailPage> {
                 return Expanded(
                   child: Container(
                     height: 3,
-                    color: prevDone && nextDone ? AppColors.accent : Colors.grey.shade200,
+                    color: prevDone && nextDone
+                        ? AppColors.accent
+                        : Colors.grey.shade200,
                   ),
                 );
               }
@@ -347,8 +365,8 @@ class _ReservationDetailPageState extends State<ReservationDetailPage> {
               final color = isBad
                   ? AppColors.error
                   : isDone
-                      ? AppColors.accent
-                      : Colors.grey.shade300;
+                  ? AppColors.accent
+                  : Colors.grey.shade300;
 
               return Column(
                 children: [
@@ -364,8 +382,8 @@ class _ReservationDetailPageState extends State<ReservationDetailPage> {
                       isBad
                           ? Icons.close
                           : isDone
-                              ? Icons.check
-                              : Icons.circle,
+                          ? Icons.check
+                          : Icons.circle,
                       size: 14,
                       color: isDone ? Colors.white : Colors.transparent,
                     ),
@@ -423,7 +441,11 @@ class _ReservationDetailPageState extends State<ReservationDetailPage> {
                   color: AppColors.primary.withOpacity(0.06),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.store_mall_directory_outlined, color: AppColors.primary, size: 22),
+                child: const Icon(
+                  Icons.store_mall_directory_outlined,
+                  color: AppColors.primary,
+                  size: 22,
+                ),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -431,18 +453,24 @@ class _ReservationDetailPageState extends State<ReservationDetailPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _branch?.nombre ?? res.sucursalNombre ?? 'Sucursal FashionStore',
+                      _branch?.nombre ??
+                          res.sucursalNombre ??
+                          'Sucursal FashionStore',
                       style: GoogleFonts.inter(
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
                         color: AppColors.textDark,
                       ),
                     ),
-                    if (_branch?.direccion != null || res.sucursalDireccion != null) ...[
+                    if (_branch?.direccion != null ||
+                        res.sucursalDireccion != null) ...[
                       const SizedBox(height: 4),
                       Text(
                         _branch?.direccion ?? res.sucursalDireccion ?? '',
-                        style: GoogleFonts.inter(fontSize: 12, color: AppColors.textLight),
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: AppColors.textLight,
+                        ),
                       ),
                     ],
                   ],
@@ -462,7 +490,11 @@ class _ReservationDetailPageState extends State<ReservationDetailPage> {
                         color: AppColors.accent.withOpacity(0.08),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(Icons.calendar_today_outlined, color: AppColors.accent, size: 18),
+                      child: const Icon(
+                        Icons.calendar_today_outlined,
+                        color: AppColors.accent,
+                        size: 18,
+                      ),
                     ),
                     const SizedBox(width: 10),
                     Column(
@@ -470,11 +502,17 @@ class _ReservationDetailPageState extends State<ReservationDetailPage> {
                       children: [
                         Text(
                           'Fecha',
-                          style: GoogleFonts.inter(fontSize: 11, color: AppColors.textLight),
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            color: AppColors.textLight,
+                          ),
                         ),
                         Text(
                           dateFormat.format(res.fechaReserva),
-                          style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600),
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ],
                     ),
@@ -490,7 +528,11 @@ class _ReservationDetailPageState extends State<ReservationDetailPage> {
                         color: AppColors.accent.withOpacity(0.08),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(Icons.access_time_outlined, color: AppColors.accent, size: 18),
+                      child: const Icon(
+                        Icons.access_time_outlined,
+                        color: AppColors.accent,
+                        size: 18,
+                      ),
                     ),
                     const SizedBox(width: 10),
                     Column(
@@ -498,11 +540,17 @@ class _ReservationDetailPageState extends State<ReservationDetailPage> {
                       children: [
                         Text(
                           'Horario',
-                          style: GoogleFonts.inter(fontSize: 11, color: AppColors.textLight),
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            color: AppColors.textLight,
+                          ),
                         ),
                         Text(
                           res.horarioAproximado ?? 'A coordinar',
-                          style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600),
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ],
                     ),
@@ -576,7 +624,8 @@ class _ReservationDetailPageState extends State<ReservationDetailPage> {
             child: SizedBox(
               width: 64,
               height: 64,
-              child: item.productoImagen != null && item.productoImagen!.isNotEmpty
+              child:
+                  item.productoImagen != null && item.productoImagen!.isNotEmpty
                   ? CachedNetworkImage(
                       imageUrl: item.productoImagen!,
                       fit: BoxFit.cover,
@@ -586,12 +635,18 @@ class _ReservationDetailPageState extends State<ReservationDetailPage> {
                       ),
                       errorWidget: (context, url, error) => Container(
                         color: Colors.grey.shade100,
-                        child: const Icon(Icons.checkroom, color: AppColors.accent),
+                        child: const Icon(
+                          Icons.checkroom,
+                          color: AppColors.accent,
+                        ),
                       ),
                     )
                   : Container(
                       color: Colors.grey.shade100,
-                      child: const Icon(Icons.checkroom, color: AppColors.accent),
+                      child: const Icon(
+                        Icons.checkroom,
+                        color: AppColors.accent,
+                      ),
                     ),
             ),
           ),
@@ -616,7 +671,10 @@ class _ReservationDetailPageState extends State<ReservationDetailPage> {
                   children: [
                     if (item.talla != null)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.background,
                           borderRadius: BorderRadius.circular(6),
@@ -624,12 +682,18 @@ class _ReservationDetailPageState extends State<ReservationDetailPage> {
                         ),
                         child: Text(
                           'Talla: ${item.talla}',
-                          style: GoogleFonts.inter(fontSize: 11, color: AppColors.textDark),
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            color: AppColors.textDark,
+                          ),
                         ),
                       ),
                     if (item.color != null)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.background,
                           borderRadius: BorderRadius.circular(6),
@@ -637,7 +701,10 @@ class _ReservationDetailPageState extends State<ReservationDetailPage> {
                         ),
                         child: Text(
                           'Color: ${item.color}',
-                          style: GoogleFonts.inter(fontSize: 11, color: AppColors.textDark),
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            color: AppColors.textDark,
+                          ),
                         ),
                       ),
                     Text(
@@ -716,7 +783,10 @@ class _ReservationDetailPageState extends State<ReservationDetailPage> {
             ? const SizedBox(
                 width: 20,
                 height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.error),
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.error,
+                ),
               )
             : const Icon(Icons.cancel_outlined),
         label: Text(

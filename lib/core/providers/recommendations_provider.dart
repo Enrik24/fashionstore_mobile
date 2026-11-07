@@ -19,8 +19,8 @@ class RecommendationsProvider extends ChangeNotifier {
   RecommendationsProvider({
     required AiService aiService,
     required CatalogService catalogService,
-  })  : _aiService = aiService,
-        _catalogService = catalogService;
+  }) : _aiService = aiService,
+       _catalogService = catalogService;
 
   static const int limite = 6;
 
@@ -40,7 +40,10 @@ class RecommendationsProvider extends ChangeNotifier {
   String? get message => _message;
 
   /// Carga las recomendaciones. [isAuthenticated] decide IA vs fallback.
-  Future<void> load({required bool isAuthenticated, bool refresh = false}) async {
+  Future<void> load({
+    required bool isAuthenticated,
+    bool refresh = false,
+  }) async {
     if (!refresh && (_isLoading || _loadedOnce)) return;
     _isLoading = true;
     _errorMessage = null;
@@ -76,8 +79,7 @@ class RecommendationsProvider extends ChangeNotifier {
 
   /// IA personalizada. Retorna true si obtuvo productos.
   Future<bool> _loadPersonalized() async {
-    final response =
-        await _aiService.getRecomendaciones(limite: limite);
+    final response = await _aiService.getRecomendaciones(limite: limite);
     final recs = response.recomendaciones
         .where((r) => r.productoId > 0)
         .take(limite)
@@ -111,8 +113,7 @@ class RecommendationsProvider extends ChangeNotifier {
 
   /// Fallback público balanceado por género (igual que la web).
   Future<void> _loadFallback() async {
-    final response =
-        await _catalogService.getCatalogo(page: 1, pageSize: 30);
+    final response = await _catalogService.getCatalogo(page: 1, pageSize: 30);
     final items = response.items;
     if (items.isEmpty) {
       _products = [];
@@ -122,8 +123,9 @@ class RecommendationsProvider extends ChangeNotifier {
       return;
     }
 
-    final hombres =
-        items.where((p) => p.genero?.toUpperCase() == 'HOMBRE').toList();
+    final hombres = items
+        .where((p) => p.genero?.toUpperCase() == 'HOMBRE')
+        .toList();
     final resto = items
         .where((p) => p.genero?.toUpperCase() != 'HOMBRE')
         .toList();

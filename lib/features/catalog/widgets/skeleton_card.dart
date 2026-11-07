@@ -22,10 +22,7 @@ class SkeletonProductCard extends StatelessWidget {
           children: [
             // Image placeholder
             Expanded(
-              child: Container(
-                color: Colors.white,
-                width: double.infinity,
-              ),
+              child: Container(color: Colors.white, width: double.infinity),
             ),
             Padding(
               padding: const EdgeInsets.all(12),

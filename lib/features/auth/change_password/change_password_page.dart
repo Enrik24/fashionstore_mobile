@@ -50,7 +50,8 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     } else {
       AppNotifications.showError(
         context,
-        auth.errorMessage ?? 'Error al cambiar la contraseña. Verifica tu contraseña actual.',
+        auth.errorMessage ??
+            'Error al cambiar la contraseña. Verifica tu contraseña actual.',
       );
     }
   }
@@ -64,7 +65,11 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
       appBar: AppBar(
         backgroundColor: AppColors.surface,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: AppColors.primary),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            size: 20,
+            color: AppColors.primary,
+          ),
           onPressed: () => context.pop(),
         ),
         title: Text(

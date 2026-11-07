@@ -1,11 +1,38 @@
 import '../../config/constants.dart';
 import '../models/cart_model.dart';
 import 'api_service.dart';
+import '../models/api_response.dart';
+import 'offline_cart_service.dart';
+import 'offline_catalog_service.dart';
 
 class CartService {
   final ApiService _apiService;
+  final OfflineCartService? _offline;
+  final OfflineCatalogService? _catalog;
 
-  CartService({required ApiService apiService}) : _apiService = apiService;
+  // [EXAMEN-2] C2.5 (§7.6) CU15: bandera remota (OfflineConfigModel).
+  // Si es false, agregarItem bloquea aunque haya datos locales.
+  bool habilitarCarritoOffline = true;
+
+  CartService({
+    required ApiService apiService,
+    OfflineCartService? offline,
+    OfflineCatalogService? catalog,
+    bool? habilitarCarritoOffline,
+  }) : _apiService = apiService,
+       _offline = offline,
+       _catalog = catalog,
+       habilitarCarritoOffline = habilitarCarritoOffline ?? true;
+
+  // [EXAMEN-2] C2.5 CU15: guarda para UI (mensaje §19).
+  static String get mensajeCarritoOfflineDeshabilitado =>
+      'El carrito offline está deshabilitado para este tenant. Regularice su plan o conecte el dispositivo.';
+
+  void _verificarHabilitado() {
+    if (!habilitarCarritoOffline) {
+      throw ApiException(message: mensajeCarritoOfflineDeshabilitado);
+    }
+  }
 
   Future<CartModel> getCarrito() async {
     try {
@@ -15,6 +42,8 @@ class CartService {
       }
       return CartModel.empty();
     } catch (e) {
+      final local = await _offline?.obtenerCarritoLocal();
+      if (local != null) return local;
       throw _apiService.handleError(e);
     }
   }
@@ -23,6 +52,7 @@ class CartService {
     required int varianteProductoId,
     required int cantidad,
   }) async {
+    _verificarHabilitado();
     try {
       final response = await _apiService.dio.post(
         AppConstants.epCarritoItems,
@@ -36,6 +66,17 @@ class CartService {
       }
       return await getCarrito();
     } catch (e) {
+      if (e is ApiException && e.message == mensajeCarritoOfflineDeshabilitado) {
+        rethrow;
+      }
+      final variante = await _varianteLocal(varianteProductoId);
+      final local = await _offline?.agregarItem(
+        varianteProductoId: varianteProductoId,
+        cantidad: cantidad,
+        precioUnitario: variante?.precioVariante ?? 0,
+        stockConocido: variante?.stockTotal,
+      );
+      if (local != null) return local;
       throw _apiService.handleError(e);
     }
   }
@@ -54,6 +95,8 @@ class CartService {
       }
       return await getCarrito();
     } catch (e) {
+      final local = await _offline?.actualizarCantidad(itemId, cantidad);
+      if (local != null) return local;
       throw _apiService.handleError(e);
     }
   }
@@ -62,7 +105,8 @@ class CartService {
     try {
       await _apiService.dio.delete('${AppConstants.epCarritoItems}/$itemId');
     } catch (e) {
-      throw _apiService.handleError(e);
+      await _offline?.eliminarItem(itemId);
+      return;
     }
   }
 
@@ -70,7 +114,8 @@ class CartService {
     try {
       await _apiService.dio.delete(AppConstants.epCarrito);
     } catch (e) {
-      throw _apiService.handleError(e);
+      await _offline?.vaciar();
+      return;
     }
   }
 
@@ -86,6 +131,12 @@ class CartService {
       }
       return await getCarrito();
     } catch (e) {
+      if (_offline != null) {
+        throw ApiException(
+          message:
+              'Los cupones requieren conexion y no se aplican sin conexion.',
+        );
+      }
       throw _apiService.handleError(e);
     }
   }
@@ -103,5 +154,55 @@ class CartService {
     } catch (e) {
       throw _apiService.handleError(e);
     }
+  }
+
+  Future<dynamic> _varianteLocal(int varianteProductoId) async {
+    final productos = await _catalog?.catalogoLocal() ?? const [];
+    for (final producto in productos) {
+      for (final variante in producto.variantes) {
+        if (variante.id == varianteProductoId) return variante;
+      }
+    }
+    return null;
+  }
+
+  Future<({String uuidOrden, String uuidPago, double total})>
+  convertirEnPagoDiferido({
+    required int? sucursalId,
+    required String? direccionEnvio,
+    required int? clienteId,
+  }) async {
+    _verificarHabilitado();
+    final offline = _offline;
+    if (offline == null) {
+      throw StateError('El carrito offline no esta disponible.');
+    }
+    return offline.convertirEnPagoDiferido(
+      sucursalId: sucursalId,
+      direccionEnvio: direccionEnvio,
+      clienteId: clienteId,
+    );
+  }
+
+  // [EXAMEN-2] C2.5 CU15: flujo validar -> aceptar -> convertir (RN-014).
+  Future<Map<String, Object?>> validarCarritoOffline(String uuid) async {
+    final offline = _offline;
+    if (offline == null) throw StateError('Carrito offline no disponible.');
+    return offline.validarContraServidor(uuid);
+  }
+
+  Future<CartModel?> aceptarNuevoTotalCarrito(
+    String uuid,
+    double nuevoTotal,
+  ) async {
+    final offline = _offline;
+    if (offline == null) throw StateError('Carrito offline no disponible.');
+    return offline.aceptarNuevoTotal(uuid, nuevoTotal);
+  }
+
+  Future<Map<String, Object?>> convertirCarritoAOrden(String uuid) async {
+    final offline = _offline;
+    if (offline == null) throw StateError('Carrito offline no disponible.');
+    return offline.convertirAOrden(uuid);
   }
 }

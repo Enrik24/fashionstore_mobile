@@ -16,6 +16,14 @@ class ProductModel {
   final int totalReviews;
   final bool destacado;
   final String? genero;
+  // [EXAMEN-2] C2.4 (§3.6, §5.3): versión, baja lógica, precio referencial y tela.
+  final int version;
+  final DateTime? updatedAt;
+  final DateTime? deletedAt;
+  final double? precioLocalReferencial;
+  final int? tipoTelaId;
+  final String? tipoTelaNombre;
+  final String? composicion;
 
   ProductModel({
     required this.id,
@@ -35,6 +43,13 @@ class ProductModel {
     this.totalReviews = 0,
     this.destacado = false,
     this.genero,
+    this.version = 1,
+    this.updatedAt,
+    this.deletedAt,
+    this.precioLocalReferencial,
+    this.tipoTelaId,
+    this.tipoTelaNombre,
+    this.composicion,
   });
 
   String get primaryImage {
@@ -48,10 +63,10 @@ class ProductModel {
 
   double get displayPrice => precioOferta ?? precio;
 
-  int get totalStock =>
-      variantes.fold(0, (sum, item) => sum + item.stockTotal);
+  int get totalStock => variantes.fold(0, (sum, item) => sum + item.stockTotal);
 
-  bool get inStock => estado == 'ACTIVO' || (totalStock > 0 && estado != 'AGOTADO');
+  bool get inStock =>
+      estado == 'ACTIVO' || (totalStock > 0 && estado != 'AGOTADO');
 
   bool get isAgotado => estado == 'AGOTADO';
 
@@ -89,7 +104,9 @@ class ProductModel {
     }
 
     return ProductModel(
-      id: json['id'] is int ? json['id'] : int.tryParse(json['id'].toString()) ?? 0,
+      id: json['id'] is int
+          ? json['id']
+          : int.tryParse(json['id'].toString()) ?? 0,
       sku: json['sku']?.toString() ?? '',
       nombre: json['nombre']?.toString() ?? 'Producto',
       descripcion: json['descripcion']?.toString(),
@@ -98,8 +115,8 @@ class ProductModel {
           : double.tryParse(json['precio']?.toString() ?? '0') ?? 0.0,
       precioOferta: json['precio_oferta'] != null
           ? ((json['precio_oferta'] is num)
-              ? (json['precio_oferta'] as num).toDouble()
-              : double.tryParse(json['precio_oferta'].toString()))
+                ? (json['precio_oferta'] as num).toDouble()
+                : double.tryParse(json['precio_oferta'].toString()))
           : null,
       imagenes: parseImagenes(json['imagenes']),
       estado: json['estado']?.toString() ?? 'ACTIVO',
@@ -119,18 +136,36 @@ class ProductModel {
       // CU26: el backend envía promedio/total reales; 0.0 = "Sin valoraciones".
       rating: (json['promedio_valoracion'] ?? json['rating']) != null
           ? (((json['promedio_valoracion'] ?? json['rating']) is num)
-              ? ((json['promedio_valoracion'] ?? json['rating']) as num).toDouble()
-              : double.tryParse(
-                      (json['promedio_valoracion'] ?? json['rating']).toString()) ??
-                  0.0)
+                ? ((json['promedio_valoracion'] ?? json['rating']) as num)
+                      .toDouble()
+                : double.tryParse(
+                        (json['promedio_valoracion'] ?? json['rating'])
+                            .toString(),
+                      ) ??
+                      0.0)
           : 0.0,
-      totalReviews: (json['total_valoraciones'] ?? json['total_reviews']) != null
+      totalReviews:
+          (json['total_valoraciones'] ?? json['total_reviews']) != null
           ? int.tryParse(
-                  (json['total_valoraciones'] ?? json['total_reviews']).toString()) ??
-              0
+                  (json['total_valoraciones'] ?? json['total_reviews'])
+                      .toString(),
+                ) ??
+                0
           : 0,
       destacado: json['destacado'] == true,
       genero: json['genero']?.toString(),
+      version: (json['version'] as num?)?.toInt() ?? 1,
+      updatedAt: DateTime.tryParse(json['updated_at']?.toString() ?? ''),
+      deletedAt: DateTime.tryParse(json['deleted_at']?.toString() ?? ''),
+      precioLocalReferencial: (json['precio_local_referencial'] as num?)?.toDouble()
+          ?? (json['precio_referencia'] as num?)?.toDouble(),
+      tipoTelaId: (json['tipo_tela_id'] as num?)?.toInt()
+          ?? (json['tipoTelaId'] as num?)?.toInt(),
+      tipoTelaNombre:
+          json['tipo_tela'] is Map
+              ? (json['tipo_tela'] as Map)['nombre']?.toString()
+              : json['tipo_tela_nombre']?.toString(),
+      composicion: json['composicion']?.toString(),
     );
   }
 
@@ -153,6 +188,13 @@ class ProductModel {
       'total_reviews': totalReviews,
       'destacado': destacado,
       'genero': genero,
+      'version': version,
+      'updated_at': updatedAt?.toUtc().toIso8601String(),
+      'deleted_at': deletedAt?.toUtc().toIso8601String(),
+      'precio_local_referencial': precioLocalReferencial,
+      'tipo_tela_id': tipoTelaId,
+      'tipo_tela_nombre': tipoTelaNombre,
+      'composicion': composicion,
     };
   }
 }
@@ -169,6 +211,11 @@ class VarianteProducto {
   final double? precioVariante;
   final int stockTotal;
   final bool activo;
+  // [EXAMEN-2] C2.4 (§3.6): versión y baja lógica.
+  final int version;
+  final DateTime? updatedAt;
+  final DateTime? deletedAt;
+  final Map<int, int> stockPorSucursal;
 
   VarianteProducto({
     required this.id,
@@ -182,11 +229,26 @@ class VarianteProducto {
     this.precioVariante,
     this.stockTotal = 0,
     this.activo = true,
+    this.version = 1,
+    this.updatedAt,
+    this.deletedAt,
+    this.stockPorSucursal = const {},
   });
 
   factory VarianteProducto.fromJson(Map<String, dynamic> json) {
+    final stockPorSucursal = <int, int>{};
+    final rawStock = json['stock_por_sucursal'] ?? json['stockPorSucursal'];
+    if (rawStock is Map) {
+      for (final e in rawStock.entries) {
+        final k = int.tryParse(e.key.toString());
+        final v = (e.value as num?)?.toInt();
+        if (k != null && v != null) stockPorSucursal[k] = v;
+      }
+    }
     return VarianteProducto(
-      id: json['id'] is int ? json['id'] : int.tryParse(json['id'].toString()) ?? 0,
+      id: json['id'] is int
+          ? json['id']
+          : int.tryParse(json['id'].toString()) ?? 0,
       productoId: json['producto_id'] is int
           ? json['producto_id']
           : int.tryParse(json['producto_id']?.toString() ?? '0') ?? 0,
@@ -194,7 +256,8 @@ class VarianteProducto {
           ? json['talla_id']
           : int.tryParse(json['talla_id']?.toString() ?? ''),
       tallaNombre: json['talla'] is Map
-          ? (json['talla']['valor']?.toString() ?? json['talla']['nombre']?.toString())
+          ? (json['talla']['valor']?.toString() ??
+                json['talla']['nombre']?.toString())
           : json['talla_nombre']?.toString() ?? json['talla']?.toString(),
       colorId: json['color_id'] is int
           ? json['color_id']
@@ -208,13 +271,24 @@ class VarianteProducto {
       skuVariante: json['sku_variante']?.toString(),
       precioVariante: json['precio_variante'] != null
           ? ((json['precio_variante'] is num)
-              ? (json['precio_variante'] as num).toDouble()
-              : double.tryParse(json['precio_variante'].toString()))
+                ? (json['precio_variante'] as num).toDouble()
+                : double.tryParse(json['precio_variante'].toString()))
           : null,
       stockTotal: json['stock_total'] is int
           ? json['stock_total']
-          : (json['stock'] is int ? json['stock'] : int.tryParse(json['stock_total']?.toString() ?? json['stock']?.toString() ?? '0') ?? 0),
+          : (json['stock'] is int
+                ? json['stock']
+                : int.tryParse(
+                        json['stock_total']?.toString() ??
+                            json['stock']?.toString() ??
+                            '0',
+                      ) ??
+                      0),
       activo: json['activo'] != false,
+      version: (json['version'] as num?)?.toInt() ?? 1,
+      updatedAt: DateTime.tryParse(json['updated_at']?.toString() ?? ''),
+      deletedAt: DateTime.tryParse(json['deleted_at']?.toString() ?? ''),
+      stockPorSucursal: stockPorSucursal,
     );
   }
 
@@ -231,6 +305,10 @@ class VarianteProducto {
       'precio_variante': precioVariante,
       'stock_total': stockTotal,
       'activo': activo,
+      'version': version,
+      'updated_at': updatedAt?.toUtc().toIso8601String(),
+      'deleted_at': deletedAt?.toUtc().toIso8601String(),
+      'stock_por_sucursal': stockPorSucursal,
     };
   }
 }
@@ -266,21 +344,19 @@ class CatalogoResponse {
     final pSize = json['page_size'] is int
         ? json['page_size']
         : (json['limite'] is int
-            ? json['limite']
-            : (json['limit'] is int ? json['limit'] : 20));
+              ? json['limite']
+              : (json['limit'] is int ? json['limit'] : 20));
     final curPage = json['page'] is int
         ? json['page']
         : (json['pagina'] is int
-            ? json['pagina']
-            : int.tryParse(
-                    json['pagina']?.toString() ?? '') ??
-                1);
+              ? json['pagina']
+              : int.tryParse(json['pagina']?.toString() ?? '') ?? 1);
 
     final totalPgs = json['total_pages'] is int
         ? json['total_pages']
         : (json['total_paginas'] is int
-            ? json['total_paginas']
-            : (totalCount > 0 ? (totalCount / pSize).ceil() : 1));
+              ? json['total_paginas']
+              : (totalCount > 0 ? (totalCount / pSize).ceil() : 1));
 
     return CatalogoResponse(
       items: list,
@@ -326,35 +402,39 @@ class DisponibilidadItem {
   });
 
   factory DisponibilidadItem.fromJson(Map<String, dynamic> json) {
-    int _toInt(dynamic v) {
+    int toInt(dynamic v) {
       if (v is int) return v;
       return int.tryParse(v?.toString() ?? '0') ?? 0;
     }
+
     return DisponibilidadItem(
       sucursalId: json['sucursal_id'] is int
           ? json['sucursal_id']
           : int.tryParse(json['sucursal_id']?.toString() ?? '0') ?? 0,
-      sucursalNombre: json['sucursal_nombre']?.toString() ??
+      sucursalNombre:
+          json['sucursal_nombre']?.toString() ??
           json['sucursal']?['nombre']?.toString() ??
           'Sucursal',
-      direccion: json['direccion']?.toString() ??
+      direccion:
+          json['direccion']?.toString() ??
           json['sucursal']?['direccion']?.toString(),
-      telefono: json['telefono']?.toString() ??
+      telefono:
+          json['telefono']?.toString() ??
           json['sucursal']?['telefono']?.toString(),
       latitud: json['latitud'] != null
           ? ((json['latitud'] is num)
-              ? (json['latitud'] as num).toDouble()
-              : double.tryParse(json['latitud'].toString()))
+                ? (json['latitud'] as num).toDouble()
+                : double.tryParse(json['latitud'].toString()))
           : (json['sucursal']?['latitud'] != null
-              ? double.tryParse(json['sucursal']['latitud'].toString())
-              : null),
+                ? double.tryParse(json['sucursal']['latitud'].toString())
+                : null),
       longitud: json['longitud'] != null
           ? ((json['longitud'] is num)
-              ? (json['longitud'] as num).toDouble()
-              : double.tryParse(json['longitud'].toString()))
+                ? (json['longitud'] as num).toDouble()
+                : double.tryParse(json['longitud'].toString()))
           : (json['sucursal']?['longitud'] != null
-              ? double.tryParse(json['sucursal']['longitud'].toString())
-              : null),
+                ? double.tryParse(json['sucursal']['longitud'].toString())
+                : null),
       varianteId: json['variante_id'] is int
           ? json['variante_id']
           : int.tryParse(json['variante_id']?.toString() ?? ''),
@@ -363,15 +443,18 @@ class DisponibilidadItem {
       stock: (json['cantidad_disponible'] is int)
           ? json['cantidad_disponible']
           : (json['stock'] is int
-              ? json['stock']
-              : int.tryParse(json['cantidad_disponible']?.toString() ??
-                      json['stock']?.toString() ??
-                      '0') ??
-                  0),
-      cantidadReservada: _toInt(json['cantidad_reservada']),
-      cantidadVendida: _toInt(json['cantidad_vendida']),
+                ? json['stock']
+                : int.tryParse(
+                        json['cantidad_disponible']?.toString() ??
+                            json['stock']?.toString() ??
+                            '0',
+                      ) ??
+                      0),
+      cantidadReservada: toInt(json['cantidad_reservada']),
+      cantidadVendida: toInt(json['cantidad_vendida']),
       estado: json['estado']?.toString() ?? 'DISPONIBLE',
-      disponible: json['estado'] == 'DISPONIBLE' ||
+      disponible:
+          json['estado'] == 'DISPONIBLE' ||
           json['disponible'] == true ||
           ((json['cantidad_disponible'] is num &&
                   (json['cantidad_disponible'] as num) > 0) ||
@@ -395,7 +478,9 @@ class CategoryModel {
 
   factory CategoryModel.fromJson(Map<String, dynamic> json) {
     return CategoryModel(
-      id: json['id'] is int ? json['id'] : int.tryParse(json['id'].toString()) ?? 0,
+      id: json['id'] is int
+          ? json['id']
+          : int.tryParse(json['id'].toString()) ?? 0,
       nombre: json['nombre']?.toString() ?? '',
       descripcion: json['descripcion']?.toString(),
       imagen: json['imagen']?.toString(),
@@ -408,15 +493,13 @@ class TemporadaModel {
   final String nombre;
   final String? descripcion;
 
-  TemporadaModel({
-    required this.id,
-    required this.nombre,
-    this.descripcion,
-  });
+  TemporadaModel({required this.id, required this.nombre, this.descripcion});
 
   factory TemporadaModel.fromJson(Map<String, dynamic> json) {
     return TemporadaModel(
-      id: json['id'] is int ? json['id'] : int.tryParse(json['id'].toString()) ?? 0,
+      id: json['id'] is int
+          ? json['id']
+          : int.tryParse(json['id'].toString()) ?? 0,
       nombre: json['nombre']?.toString() ?? '',
       descripcion: json['descripcion']?.toString(),
     );
@@ -438,7 +521,9 @@ class TallaModel {
 
   factory TallaModel.fromJson(Map<String, dynamic> json) {
     return TallaModel(
-      id: json['id'] is int ? json['id'] : int.tryParse(json['id'].toString()) ?? 0,
+      id: json['id'] is int
+          ? json['id']
+          : int.tryParse(json['id'].toString()) ?? 0,
       valor: json['valor']?.toString() ?? json['nombre']?.toString() ?? '',
       tipo: json['tipo']?.toString(),
       descripcion: json['descripcion']?.toString(),
@@ -451,15 +536,13 @@ class ColorFilterModel {
   final String nombre;
   final String? codigoHex;
 
-  ColorFilterModel({
-    required this.id,
-    required this.nombre,
-    this.codigoHex,
-  });
+  ColorFilterModel({required this.id, required this.nombre, this.codigoHex});
 
   factory ColorFilterModel.fromJson(Map<String, dynamic> json) {
     return ColorFilterModel(
-      id: json['id'] is int ? json['id'] : int.tryParse(json['id'].toString()) ?? 0,
+      id: json['id'] is int
+          ? json['id']
+          : int.tryParse(json['id'].toString()) ?? 0,
       nombre: json['nombre']?.toString() ?? '',
       codigoHex: json['codigo_hex']?.toString(),
     );

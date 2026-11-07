@@ -33,7 +33,9 @@ class QuantitySelector extends StatelessWidget {
                       onChanged(quantity - 1);
                     }
                   },
-            borderRadius: const BorderRadius.horizontal(left: Radius.circular(10)),
+            borderRadius: const BorderRadius.horizontal(
+              left: Radius.circular(10),
+            ),
             child: const Padding(
               padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               child: Icon(Icons.remove, size: 16, color: AppColors.textPrimary),
@@ -56,13 +58,17 @@ class QuantitySelector extends StatelessWidget {
                 : () {
                     onChanged(quantity + 1);
                   },
-            borderRadius: const BorderRadius.horizontal(right: Radius.circular(10)),
+            borderRadius: const BorderRadius.horizontal(
+              right: Radius.circular(10),
+            ),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               child: Icon(
                 Icons.add,
                 size: 16,
-                color: quantity >= maxStock ? AppColors.textMuted : AppColors.textPrimary,
+                color: quantity >= maxStock
+                    ? AppColors.textMuted
+                    : AppColors.textPrimary,
               ),
             ),
           ),

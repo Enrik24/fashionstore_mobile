@@ -94,7 +94,10 @@ class _OrdersHistoryPageState extends State<OrdersHistoryPage>
               unselectedLabelColor: AppColors.textSecondary,
               indicatorColor: AppColors.accent,
               indicatorWeight: 3,
-              labelStyle: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13),
+              labelStyle: GoogleFonts.inter(
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
               tabs: const [
                 Tab(text: 'Todas'),
                 Tab(text: 'Pagadas'),
@@ -104,38 +107,48 @@ class _OrdersHistoryPageState extends State<OrdersHistoryPage>
           ),
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: AppColors.accent))
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppColors.accent),
+                  )
                 : _error != null
-                    ? Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(24.0),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.error_outline, size: 60, color: AppColors.error),
-                              const SizedBox(height: 12),
-                              Text(_error!, textAlign: TextAlign.center),
-                              const SizedBox(height: 16),
-                              ElevatedButton(
-                                onPressed: _loadOrders,
-                                child: const Text('Reintentar'),
-                              ),
-                            ],
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.error_outline,
+                            size: 60,
+                            color: AppColors.error,
                           ),
-                        ),
-                      )
-                    : RefreshIndicator(
-                        color: AppColors.accent,
-                        onRefresh: _loadOrders,
-                        child: TabBarView(
-                          controller: _tabController,
-                          children: [
-                            _buildOrderList(_orders),
-                            _buildOrderList(_orders.where((o) => o.isPaid).toList()),
-                            _buildOrderList(_orders.where((o) => o.isPending).toList()),
-                          ],
-                        ),
+                          const SizedBox(height: 12),
+                          Text(_error!, textAlign: TextAlign.center),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: _loadOrders,
+                            child: const Text('Reintentar'),
+                          ),
+                        ],
                       ),
+                    ),
+                  )
+                : RefreshIndicator(
+                    color: AppColors.accent,
+                    onRefresh: _loadOrders,
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _buildOrderList(_orders),
+                        _buildOrderList(
+                          _orders.where((o) => o.isPaid).toList(),
+                        ),
+                        _buildOrderList(
+                          _orders.where((o) => o.isPending).toList(),
+                        ),
+                      ],
+                    ),
+                  ),
           ),
         ],
       ),
@@ -175,15 +188,23 @@ class _OrdersHistoryPageState extends State<OrdersHistoryPage>
               Text(
                 'Tus pedidos realizados en línea aparecerán aquí para que sigas su estado.',
                 textAlign: TextAlign.center,
-                style: GoogleFonts.inter(fontSize: 13, color: AppColors.textSecondary),
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                ),
               ),
               const SizedBox(height: 24),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                 ),
                 onPressed: () => context.go('/catalog'),
                 child: const Text('Comenzar a Comprar'),
@@ -235,7 +256,10 @@ class _OrdersHistoryPageState extends State<OrdersHistoryPage>
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: statusColor.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(10),
@@ -255,11 +279,20 @@ class _OrdersHistoryPageState extends State<OrdersHistoryPage>
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    const Icon(Icons.calendar_today_outlined, size: 14, color: AppColors.textLight),
+                    const Icon(
+                      Icons.calendar_today_outlined,
+                      size: 14,
+                      color: AppColors.textLight,
+                    ),
                     const SizedBox(width: 6),
                     Text(
-                      order.createdAt != null ? dateFormat.format(order.createdAt!) : 'Fecha no disponible',
-                      style: GoogleFonts.inter(fontSize: 12, color: AppColors.textLight),
+                      order.createdAt != null
+                          ? dateFormat.format(order.createdAt!)
+                          : 'Fecha no disponible',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: AppColors.textLight,
+                      ),
                     ),
                   ],
                 ),
@@ -272,12 +305,18 @@ class _OrdersHistoryPageState extends State<OrdersHistoryPage>
                       children: [
                         Text(
                           '${order.items.length} ${order.items.length == 1 ? 'prenda' : 'prendas'}',
-                          style: GoogleFonts.inter(fontSize: 12, color: AppColors.textSecondary),
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                          ),
                         ),
                         if (order.metodoPago != null)
                           Text(
                             'Pago: ${order.metodoPago}',
-                            style: GoogleFonts.inter(fontSize: 11, color: AppColors.textLight),
+                            style: GoogleFonts.inter(
+                              fontSize: 11,
+                              color: AppColors.textLight,
+                            ),
                           ),
                       ],
                     ),
@@ -286,7 +325,10 @@ class _OrdersHistoryPageState extends State<OrdersHistoryPage>
                       children: [
                         Text(
                           'Total',
-                          style: GoogleFonts.inter(fontSize: 11, color: AppColors.textLight),
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            color: AppColors.textLight,
+                          ),
                         ),
                         Text(
                           'Bs. ${order.total.toStringAsFixed(2)}',

@@ -36,8 +36,7 @@ class _ItemSelection {
   int cantidad;
   int? varianteCambioId;
 
-  _ItemSelection({required this.item})
-      : cantidad = item.cantidad > 0 ? 1 : 1;
+  _ItemSelection({required this.item}) : cantidad = item.cantidad > 0 ? 1 : 1;
 }
 
 class _RequestReturnPageState extends State<RequestReturnPage> {
@@ -77,8 +76,7 @@ class _RequestReturnPageState extends State<RequestReturnPage> {
       if (!mounted) return;
       setState(() {
         _order = order;
-        _selections =
-            order.items.map((e) => _ItemSelection(item: e)).toList();
+        _selections = order.items.map((e) => _ItemSelection(item: e)).toList();
         _isLoading = false;
       });
     } catch (e) {
@@ -93,8 +91,7 @@ class _RequestReturnPageState extends State<RequestReturnPage> {
   bool get _withinPlazo {
     final created = _order?.createdAt;
     if (created == null) return true;
-    return DateTime.now().difference(created).inDays <=
-        kPlazoDevolucionDias;
+    return DateTime.now().difference(created).inDays <= kPlazoDevolucionDias;
   }
 
   Future<void> _loadAvailability(int productoId) async {
@@ -104,13 +101,13 @@ class _RequestReturnPageState extends State<RequestReturnPage> {
     }
     setState(() => _loadingAvailability.add(productoId));
     try {
-      final catalog =
-          CatalogService(apiService: context.read<ApiService>());
+      final catalog = CatalogService(apiService: context.read<ApiService>());
       final list = await catalog.getDisponibilidad(productoId);
       if (!mounted) return;
       setState(() {
-        _availabilityByProduct[productoId] =
-            list.where((e) => e.stock > 0).toList();
+        _availabilityByProduct[productoId] = list
+            .where((e) => e.stock > 0)
+            .toList();
         _loadingAvailability.remove(productoId);
       });
     } catch (_) {
@@ -145,12 +142,10 @@ class _RequestReturnPageState extends State<RequestReturnPage> {
       );
       return;
     }
-    if (_isCambio &&
-        selected.any((s) => s.varianteCambioId == null)) {
+    if (_isCambio && selected.any((s) => s.varianteCambioId == null)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-              'Elige la nueva variante para cada prenda a cambiar'),
+          content: Text('Elige la nueva variante para cada prenda a cambiar'),
           backgroundColor: AppColors.warning,
         ),
       );
@@ -187,12 +182,13 @@ class _RequestReturnPageState extends State<RequestReturnPage> {
       motivo: _motivo,
       motivoDetalle: _detalleController.text,
       items: selected
-          .map((s) => ReturnItemCreate(
-                detalleOrdenId: s.item.id,
-                cantidad: s.cantidad,
-                varianteCambioId:
-                    _isCambio ? s.varianteCambioId : null,
-              ))
+          .map(
+            (s) => ReturnItemCreate(
+              detalleOrdenId: s.item.id,
+              cantidad: s.cantidad,
+              varianteCambioId: _isCambio ? s.varianteCambioId : null,
+            ),
+          )
           .toList(),
     );
 
@@ -200,8 +196,7 @@ class _RequestReturnPageState extends State<RequestReturnPage> {
     if (created != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-              'Solicitud ${created.numeroSolicitud} enviada'),
+          content: Text('Solicitud ${created.numeroSolicitud} enviada'),
           backgroundColor: AppColors.success,
         ),
       );
@@ -210,7 +205,8 @@ class _RequestReturnPageState extends State<RequestReturnPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-              provider.errorMessage ?? 'No se pudo enviar la solicitud'),
+            provider.errorMessage ?? 'No se pudo enviar la solicitud',
+          ),
           backgroundColor: AppColors.error,
         ),
       );
@@ -222,97 +218,97 @@ class _RequestReturnPageState extends State<RequestReturnPage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: const CustomAppBar(
-          title: 'Solicitar devolución', showBackButton: true),
+        title: 'Solicitar devolución',
+        showBackButton: true,
+      ),
       body: _isLoading
           ? const Center(
-              child:
-                  CircularProgressIndicator(color: AppColors.accent))
+              child: CircularProgressIndicator(color: AppColors.accent),
+            )
           : _error != null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.error_outline,
-                            size: 56, color: AppColors.error),
-                        const SizedBox(height: 12),
-                        Text(_error!,
-                            textAlign: TextAlign.center),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: _loadOrder,
-                          child: const Text('Reintentar'),
-                        ),
-                      ],
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      size: 56,
+                      color: AppColors.error,
                     ),
-                  ),
-                )
-              : !_withinPlazo
-                  ? _buildOutOfPlazo()
-                  : SingleChildScrollView(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment:
-                            CrossAxisAlignment.start,
-                        children: [
-                          _buildStepTitle('1', 'Selecciona las prendas'),
-                          ..._selections
-                              .map((s) => _buildItemSelector(s)),
-                          const SizedBox(height: 16),
-                          _buildStepTitle('2', 'Tipo y motivo'),
-                          _buildTypeAndReason(),
-                          const SizedBox(height: 16),
-                          _buildStepTitle('3', 'Confirmación'),
-                          _buildSummary(),
-                          const SizedBox(height: 16),
-                          SizedBox(
-                            width: double.infinity,
-                            child: Consumer<ReturnProvider>(
-                              builder: (context, provider, _) {
-                                return ElevatedButton.icon(
-                                  onPressed: !_canSubmit ||
-                                          provider.isSubmitting
-                                      ? null
-                                      : _submit,
-                                  icon: provider.isSubmitting
-                                      ? const SizedBox(
-                                          width: 20,
-                                          height: 20,
-                                          child:
-                                              CircularProgressIndicator(
-                                            color: Colors.white,
-                                            strokeWidth: 2,
-                                          ),
-                                        )
-                                      : const Icon(
-                                          Icons.send_outlined,
-                                          color: Colors.white),
-                                  label: Text(
-                                    _isCambio
-                                        ? 'Enviar solicitud de cambio'
-                                        : 'Enviar solicitud de devolución',
-                                    style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold),
+                    const SizedBox(height: 12),
+                    Text(_error!, textAlign: TextAlign.center),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: _loadOrder,
+                      child: const Text('Reintentar'),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : !_withinPlazo
+          ? _buildOutOfPlazo()
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildStepTitle('1', 'Selecciona las prendas'),
+                  ..._selections.map((s) => _buildItemSelector(s)),
+                  const SizedBox(height: 16),
+                  _buildStepTitle('2', 'Tipo y motivo'),
+                  _buildTypeAndReason(),
+                  const SizedBox(height: 16),
+                  _buildStepTitle('3', 'Confirmación'),
+                  _buildSummary(),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: Consumer<ReturnProvider>(
+                      builder: (context, provider, _) {
+                        return ElevatedButton.icon(
+                          onPressed: !_canSubmit || provider.isSubmitting
+                              ? null
+                              : _submit,
+                          icon: provider.isSubmitting
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
                                   ),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.accent,
-                                    minimumSize:
-                                        const Size.fromHeight(52),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius:
-                                          BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                );
-                              },
+                                )
+                              : const Icon(
+                                  Icons.send_outlined,
+                                  color: Colors.white,
+                                ),
+                          label: Text(
+                            _isCambio
+                                ? 'Enviar solicitud de cambio'
+                                : 'Enviar solicitud de devolución',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const SizedBox(height: 24),
-                        ],
-                      ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.accent,
+                            minimumSize: const Size.fromHeight(52),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        );
+                      },
                     ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
+              ),
+            ),
     );
   }
 
@@ -323,14 +319,18 @@ class _RequestReturnPageState extends State<RequestReturnPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.schedule_outlined,
-                size: 64, color: AppColors.warning),
+            const Icon(
+              Icons.schedule_outlined,
+              size: 64,
+              color: AppColors.warning,
+            ),
             const SizedBox(height: 16),
-            Text('Plazo vencido',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleLarge
-                    ?.copyWith(fontWeight: FontWeight.bold)),
+            Text(
+              'Plazo vencido',
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 8),
             Text(
               'Esta orden superó el plazo de $kPlazoDevolucionDias días para devoluciones y cambios.',
@@ -351,18 +351,22 @@ class _RequestReturnPageState extends State<RequestReturnPage> {
           CircleAvatar(
             radius: 13,
             backgroundColor: AppColors.primary,
-            child: Text(number,
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold)),
+            child: Text(
+              number,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
           const SizedBox(width: 8),
-          Text(title,
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.bold)),
+          Text(
+            title,
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          ),
         ],
       ),
     );
@@ -376,9 +380,7 @@ class _RequestReturnPageState extends State<RequestReturnPage> {
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: sel.selected
-              ? AppColors.accent
-              : AppColors.border,
+          color: sel.selected ? AppColors.accent : AppColors.border,
           width: sel.selected ? 1.5 : 1,
         ),
       ),
@@ -388,69 +390,66 @@ class _RequestReturnPageState extends State<RequestReturnPage> {
             value: sel.selected,
             onChanged: (v) {
               setState(() => sel.selected = v ?? false);
-              if ((v ?? false) &&
-                  _isCambio &&
-                  item.productoId > 0) {
+              if ((v ?? false) && _isCambio && item.productoId > 0) {
                 _loadAvailability(item.productoId);
               }
             },
-            title: Text(item.productoNombre,
-                style: const TextStyle(
-                    fontWeight: FontWeight.w600, fontSize: 13)),
+            title: Text(
+              item.productoNombre,
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+            ),
             subtitle: Text(
               '${item.cantidad}x  Bs. ${item.precioUnitario.toStringAsFixed(2)}'
               '${item.talla != null ? ' • Talla ${item.talla}' : ''}',
               style: const TextStyle(fontSize: 12),
             ),
-            secondary: item.productoImagen != null &&
-                    item.productoImagen!.isNotEmpty
+            secondary:
+                item.productoImagen != null && item.productoImagen!.isNotEmpty
                 ? ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: Image.network(item.productoImagen!,
-                        width: 44,
-                        height: 44,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) =>
-                            const Icon(Icons.checkroom)),
+                    child: Image.network(
+                      item.productoImagen!,
+                      width: 44,
+                      height: 44,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const Icon(Icons.checkroom),
+                    ),
                   )
-                : const Icon(Icons.checkroom,
-                    color: AppColors.accent),
+                : const Icon(Icons.checkroom, color: AppColors.accent),
           ),
           if (sel.selected) ...[
             Padding(
-              padding:
-                  const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: Row(
                 children: [
-                  const Text('Cantidad:',
-                      style: TextStyle(fontSize: 12)),
+                  const Text('Cantidad:', style: TextStyle(fontSize: 12)),
                   IconButton(
-                    icon: const Icon(Icons.remove_circle_outline,
-                        size: 20),
+                    icon: const Icon(Icons.remove_circle_outline, size: 20),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                     onPressed: sel.cantidad > 1
-                        ? () => setState(
-                            () => sel.cantidad--)
+                        ? () => setState(() => sel.cantidad--)
                         : null,
                   ),
-                  Text('${sel.cantidad}',
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold)),
+                  Text(
+                    '${sel.cantidad}',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   IconButton(
-                    icon: const Icon(Icons.add_circle_outline,
-                        size: 20),
+                    icon: const Icon(Icons.add_circle_outline, size: 20),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                     onPressed: sel.cantidad < item.cantidad
-                        ? () => setState(
-                            () => sel.cantidad++)
+                        ? () => setState(() => sel.cantidad++)
                         : null,
                   ),
-                  Text('de ${item.cantidad}',
-                      style: const TextStyle(
-                          fontSize: 11,
-                          color: AppColors.textMuted)),
+                  Text(
+                    'de ${item.cantidad}',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -501,11 +500,11 @@ class _RequestReturnPageState extends State<RequestReturnPage> {
         value: sel.varianteCambioId,
         decoration: InputDecoration(
           labelText: 'Nueva variante',
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
           contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12, vertical: 8),
+            horizontal: 12,
+            vertical: 8,
+          ),
         ),
         items: options.map((o) {
           return DropdownMenuItem<int>(
@@ -516,8 +515,7 @@ class _RequestReturnPageState extends State<RequestReturnPage> {
             ),
           );
         }).toList(),
-        onChanged: (v) =>
-            setState(() => sel.varianteCambioId = v),
+        onChanged: (v) => setState(() => sel.varianteCambioId = v),
       ),
     );
   }
@@ -536,13 +534,15 @@ class _RequestReturnPageState extends State<RequestReturnPage> {
           SegmentedButton<bool>(
             segments: const [
               ButtonSegment(
-                  value: false,
-                  label: Text('Devolución'),
-                  icon: Icon(Icons.undo_outlined, size: 18)),
+                value: false,
+                label: Text('Devolución'),
+                icon: Icon(Icons.undo_outlined, size: 18),
+              ),
               ButtonSegment(
-                  value: true,
-                  label: Text('Cambio'),
-                  icon: Icon(Icons.swap_horiz_outlined, size: 18)),
+                value: true,
+                label: Text('Cambio'),
+                icon: Icon(Icons.swap_horiz_outlined, size: 18),
+              ),
             ],
             selected: {_isCambio},
             onSelectionChanged: (s) {
@@ -566,14 +566,14 @@ class _RequestReturnPageState extends State<RequestReturnPage> {
               ),
             ),
             items: MotivosDevolucion.todos
-                .map((m) => DropdownMenuItem(
-                      value: m,
-                      child:
-                          Text(MotivosDevolucion.label(m)),
-                    ))
+                .map(
+                  (m) => DropdownMenuItem(
+                    value: m,
+                    child: Text(MotivosDevolucion.label(m)),
+                  ),
+                )
                 .toList(),
-            onChanged: (v) =>
-                setState(() => _motivo = v ?? _motivo),
+            onChanged: (v) => setState(() => _motivo = v ?? _motivo),
           ),
           const SizedBox(height: 12),
           TextField(
@@ -593,8 +593,9 @@ class _RequestReturnPageState extends State<RequestReturnPage> {
   }
 
   Widget _buildSummary() {
-    final count =
-        _selections.where((s) => s.selected).length;
+    final count = _selections.where((s) => s.selected).length;
+    // [EXAMEN-2] Fase 3 (CU13/CU18): resumen con tipo, plazo y diferencia.
+    final diferencia = _estimatedRefund;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -608,9 +609,10 @@ class _RequestReturnPageState extends State<RequestReturnPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text('Prendas seleccionadas'),
-              Text('$count',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold)),
+              Text(
+                '$count',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
             ],
           ),
           const SizedBox(height: 6),
@@ -621,12 +623,38 @@ class _RequestReturnPageState extends State<RequestReturnPage> {
               Text(
                 'Bs. ${_estimatedRefund.toStringAsFixed(2)}',
                 style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.accent,
-                    fontSize: 16),
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.accent,
+                  fontSize: 16,
+                ),
               ),
             ],
           ),
+          const SizedBox(height: 6),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(_isCambio ? 'Tipo: Reposición' : 'Tipo: Devolución'),
+              Text(
+                _withinPlazo ? 'Dentro de plazo' : 'Fuera de plazo',
+                style: TextStyle(
+                  color: _withinPlazo ? AppColors.success : AppColors.error,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+          if (_isCambio)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Diferencia estimada'),
+                Text(
+                  'Bs. ${diferencia.toStringAsFixed(2)}',
+                  style: const TextStyle(fontSize: 12),
+                ),
+              ],
+            ),
         ],
       ),
     );

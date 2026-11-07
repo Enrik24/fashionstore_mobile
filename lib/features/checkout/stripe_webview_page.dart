@@ -51,8 +51,10 @@ class _StripeWebViewPageState extends State<StripeWebViewPage> {
           },
           onWebResourceError: (error) {
             if (mounted && !_finished) {
-              setState(() => _loadError =
-                  'No se pudo cargar la página de pago (${error.description}). Revisa tu conexión e inténtalo de nuevo.');
+              setState(
+                () => _loadError =
+                    'No se pudo cargar la página de pago (${error.description}). Revisa tu conexión e inténtalo de nuevo.',
+              );
             }
           },
           onNavigationRequest: (request) {
@@ -77,10 +79,10 @@ class _StripeWebViewPageState extends State<StripeWebViewPage> {
     _finished = true;
     if (!paid) {
       // Canceló en Stripe: mostrar el success en pendiente (con verificar).
-      context.go('/checkout/success', extra: {
-        'order': widget.order,
-        'stripeSessionId': widget.sessionId,
-      });
+      context.go(
+        '/checkout/success',
+        extra: {'order': widget.order, 'stripeSessionId': widget.sessionId},
+      );
       return;
     }
     setState(() => _confirming = true);
@@ -95,16 +97,18 @@ class _StripeWebViewPageState extends State<StripeWebViewPage> {
       // La confirmación dirá el motivo en la pantalla de éxito.
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(checkout.errorMessage ??
-              'Stripe aún no registra el pago. Usa "Ya pagué, verificar pago".'),
+          content: Text(
+            checkout.errorMessage ??
+                'Stripe aún no registra el pago. Usa "Ya pagué, verificar pago".',
+          ),
           backgroundColor: AppColors.warning,
         ),
       );
     }
-    context.go('/checkout/success', extra: {
-      'order': updated,
-      'stripeSessionId': widget.sessionId,
-    });
+    context.go(
+      '/checkout/success',
+      extra: {'order': updated, 'stripeSessionId': widget.sessionId},
+    );
   }
 
   Future<void> _confirmExit() async {
@@ -115,22 +119,25 @@ class _StripeWebViewPageState extends State<StripeWebViewPage> {
       builder: (ctx) => AlertDialog(
         title: const Text('Salir del pago'),
         content: const Text(
-            'Si sales ahora, tu pedido queda en espera de pago y podrás verificarlo después.'),
+          'Si sales ahora, tu pedido queda en espera de pago y podrás verificarlo después.',
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Seguir pagando')),
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Seguir pagando'),
+          ),
           TextButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('Salir')),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Salir'),
+          ),
         ],
       ),
     );
     if (leave == true && mounted) {
-      context.go('/checkout/success', extra: {
-        'order': widget.order,
-        'stripeSessionId': widget.sessionId,
-      });
+      context.go(
+        '/checkout/success',
+        extra: {'order': widget.order, 'stripeSessionId': widget.sessionId},
+      );
     }
   }
 
@@ -160,17 +167,24 @@ class _StripeWebViewPageState extends State<StripeWebViewPage> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.wifi_off_rounded,
-                          size: 56, color: AppColors.textSecondary),
+                      const Icon(
+                        Icons.wifi_off_rounded,
+                        size: 56,
+                        color: AppColors.textSecondary,
+                      ),
                       const SizedBox(height: 16),
-                      Text(_loadError!,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(color: AppColors.textSecondary)),
+                      Text(
+                        _loadError!,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: AppColors.textSecondary),
+                      ),
                       const SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: () {
                           setState(() => _loadError = null);
-                          _controller.loadRequest(Uri.parse(widget.checkoutUrl));
+                          _controller.loadRequest(
+                            Uri.parse(widget.checkoutUrl),
+                          );
                         },
                         child: const Text('Reintentar'),
                       ),
@@ -189,8 +203,10 @@ class _StripeWebViewPageState extends State<StripeWebViewPage> {
                     children: [
                       CircularProgressIndicator(color: Colors.white),
                       SizedBox(height: 16),
-                      Text('Confirmando tu pago...',
-                          style: TextStyle(color: Colors.white, fontSize: 16)),
+                      Text(
+                        'Confirmando tu pago...',
+                        style: TextStyle(color: Colors.white, fontSize: 16),
+                      ),
                     ],
                   ),
                 ),

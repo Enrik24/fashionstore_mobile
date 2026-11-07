@@ -12,7 +12,8 @@ class AiProvider with ChangeNotifier {
     _chatMessages.add(
       ChatMessage(
         role: 'assistant',
-        content: '¡Hola! Soy tu estilista y asesor virtual de FashionStore. ¿En qué puedo ayudarte hoy? Puedes preguntarme por combinaciones, ocasiones especiales, tendencias o tallas.',
+        content:
+            '¡Hola! Soy tu estilista y asesor virtual de FashionStore. ¿En qué puedo ayudarte hoy? Puedes preguntarme por combinaciones, ocasiones especiales, tendencias o tallas.',
       ),
     );
     _currentSuggestions = [
@@ -32,7 +33,10 @@ class AiProvider with ChangeNotifier {
   bool get isLoadingRecommendations => _isLoadingRecommendations;
   String? get recommendationsError => _recommendationsError;
 
-  Future<void> loadRecommendations({int? clienteId, String? preferencias}) async {
+  Future<void> loadRecommendations({
+    int? clienteId,
+    String? preferencias,
+  }) async {
     _isLoadingRecommendations = true;
     _recommendationsError = null;
     notifyListeners();
@@ -61,7 +65,10 @@ class AiProvider with ChangeNotifier {
   String? get chatError => _chatError;
   List<String> get currentSuggestions => _currentSuggestions;
 
-  Future<AsistenteChatResponse?> sendMessage(String text, {String? categoriaInteres}) async {
+  Future<AsistenteChatResponse?> sendMessage(
+    String text, {
+    String? categoriaInteres,
+  }) async {
     final trimmed = text.trim();
     if (trimmed.isEmpty) return null;
 
@@ -74,9 +81,7 @@ class AiProvider with ChangeNotifier {
 
     try {
       // Filtrar historial para enviar a Groq (máximo últimos 6 mensajes)
-      final historyList = _chatMessages
-          .where((m) => m != userMsg)
-          .toList();
+      final historyList = _chatMessages.where((m) => m != userMsg).toList();
       final historyToSend = historyList.length > 6
           ? historyList.sublist(historyList.length - 6)
           : historyList;
@@ -106,7 +111,8 @@ class AiProvider with ChangeNotifier {
       _chatMessages.add(
         ChatMessage(
           role: 'assistant',
-          content: 'Lo siento, tuve un problema al procesar tu solicitud. Por favor intenta de nuevo.',
+          content:
+              'Lo siento, tuve un problema al procesar tu solicitud. Por favor intenta de nuevo.',
         ),
       );
       return null;
@@ -117,12 +123,7 @@ class AiProvider with ChangeNotifier {
   }
 
   void addAssistantFeedback(String content) {
-    _chatMessages.add(
-      ChatMessage(
-        role: 'assistant',
-        content: content,
-      ),
-    );
+    _chatMessages.add(ChatMessage(role: 'assistant', content: content));
     notifyListeners();
   }
 
@@ -131,7 +132,8 @@ class AiProvider with ChangeNotifier {
     _chatMessages.add(
       ChatMessage(
         role: 'assistant',
-        content: '¡Hola de nuevo! ¿En qué otra consulta de moda puedo asistirte?',
+        content:
+            '¡Hola de nuevo! ¿En qué otra consulta de moda puedo asistirte?',
       ),
     );
     _currentSuggestions = [
@@ -160,10 +162,7 @@ class AiProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> tryOnItem({
-    required int productoId,
-    int? varianteId,
-  }) async {
+  Future<void> tryOnItem({required int productoId, int? varianteId}) async {
     _isFittingLoading = true;
     _fittingError = null;
     notifyListeners();

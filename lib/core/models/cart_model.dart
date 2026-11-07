@@ -13,6 +13,9 @@ class CartItemModel {
   final int stockDisponible;
   final int productoId;
   final int? categoriaId;
+  // [EXAMEN-2] Precio y stock conocidos localmente (CU15).
+  final double? precioUnitarioLocal;
+  final int? stockLocalConocido;
 
   CartItemModel({
     required this.id,
@@ -29,6 +32,8 @@ class CartItemModel {
     this.stockDisponible = 99,
     this.productoId = 0,
     this.categoriaId,
+    this.precioUnitarioLocal,
+    this.stockLocalConocido,
   });
 
   factory CartItemModel.fromJson(Map<String, dynamic> json) {
@@ -49,7 +54,9 @@ class CartItemModel {
     // El backend envía el detalle en 'variante_producto' o 'variante'
     final Map<String, dynamic>? v = (json['variante_producto'] is Map)
         ? json['variante_producto'] as Map<String, dynamic>
-        : (json['variante'] is Map ? json['variante'] as Map<String, dynamic> : null);
+        : (json['variante'] is Map
+              ? json['variante'] as Map<String, dynamic>
+              : null);
 
     if (v != null) {
       skuVar = v['sku_variante']?.toString();
@@ -113,12 +120,14 @@ class CartItemModel {
 
     final sub = json['subtotal'] != null
         ? ((json['subtotal'] is num)
-            ? (json['subtotal'] as num).toDouble()
-            : double.tryParse(json['subtotal'].toString()) ?? (unitPrice * q))
+              ? (json['subtotal'] as num).toDouble()
+              : double.tryParse(json['subtotal'].toString()) ?? (unitPrice * q))
         : (unitPrice * q);
 
     return CartItemModel(
-      id: json['id'] is int ? json['id'] : int.tryParse(json['id'].toString()) ?? 0,
+      id: json['id'] is int
+          ? json['id']
+          : int.tryParse(json['id'].toString()) ?? 0,
       varianteProductoId: json['variante_producto_id'] is int
           ? json['variante_producto_id']
           : int.tryParse(json['variante_producto_id']?.toString() ?? '0') ?? 0,
@@ -160,6 +169,8 @@ class CartItemModel {
       'color_nombre': colorNombre,
       'color_hex': colorHex,
       'sku_variante': skuVariante,
+      'precio_unitario_local': precioUnitarioLocal ?? precioUnitario,
+      'stock_local_conocido': stockLocalConocido ?? stockDisponible,
     };
   }
 }
@@ -172,6 +183,13 @@ class CartModel {
   final double descuentoAplicado;
   final double total;
   final String? cuponCodigo;
+  // [EXAMEN-2] Identidad y estado persistente del carrito offline (CU15).
+  final String uuidCarrito;
+  final String? dispositivoId;
+  final String estado;
+  final bool esOffline;
+  final String estadoSincronizacion;
+  final DateTime? fechaActualizacion;
 
   CartModel({
     required this.id,
@@ -181,6 +199,12 @@ class CartModel {
     this.descuentoAplicado = 0.0,
     required this.total,
     this.cuponCodigo,
+    this.uuidCarrito = '',
+    this.dispositivoId,
+    this.estado = 'ACTIVO',
+    this.esOffline = false,
+    this.estadoSincronizacion = 'PENDIENTE',
+    this.fechaActualizacion,
   });
 
   int get totalItems => items.fold(0, (sum, item) => sum + item.cantidad);
@@ -210,20 +234,20 @@ class CartModel {
 
     final sub = json['subtotal'] != null
         ? ((json['subtotal'] is num)
-            ? (json['subtotal'] as num).toDouble()
-            : double.tryParse(json['subtotal'].toString()) ?? 0.0)
+              ? (json['subtotal'] as num).toDouble()
+              : double.tryParse(json['subtotal'].toString()) ?? 0.0)
         : itemList.fold(0.0, (s, i) => s + i.subtotal);
 
     final desc = json['descuento_aplicado'] != null
         ? ((json['descuento_aplicado'] is num)
-            ? (json['descuento_aplicado'] as num).toDouble()
-            : double.tryParse(json['descuento_aplicado'].toString()) ?? 0.0)
+              ? (json['descuento_aplicado'] as num).toDouble()
+              : double.tryParse(json['descuento_aplicado'].toString()) ?? 0.0)
         : 0.0;
 
     final tot = json['total'] != null
         ? ((json['total'] is num)
-            ? (json['total'] as num).toDouble()
-            : double.tryParse(json['total'].toString()) ?? (sub - desc))
+              ? (json['total'] as num).toDouble()
+              : double.tryParse(json['total'].toString()) ?? (sub - desc))
         : (sub - desc);
 
     String? coupon;
@@ -232,7 +256,9 @@ class CartModel {
     }
 
     return CartModel(
-      id: json['id'] is int ? json['id'] : int.tryParse(json['id']?.toString() ?? '0') ?? 0,
+      id: json['id'] is int
+          ? json['id']
+          : int.tryParse(json['id']?.toString() ?? '0') ?? 0,
       clienteId: json['cliente_id'] is int
           ? json['cliente_id']
           : int.tryParse(json['cliente_id']?.toString() ?? '0') ?? 0,
@@ -241,6 +267,15 @@ class CartModel {
       descuentoAplicado: desc,
       total: tot,
       cuponCodigo: coupon,
+      uuidCarrito: json['uuid_carrito']?.toString() ?? '',
+      dispositivoId: json['dispositivo_id']?.toString(),
+      estado: json['estado']?.toString() ?? 'ACTIVO',
+      esOffline: json['es_offline'] == true,
+      estadoSincronizacion:
+          json['estado_sincronizacion']?.toString() ?? 'PENDIENTE',
+      fechaActualizacion: DateTime.tryParse(
+        json['fecha_actualizacion']?.toString() ?? '',
+      ),
     );
   }
 
@@ -253,6 +288,12 @@ class CartModel {
       'descuento_aplicado': descuentoAplicado,
       'total': total,
       'cupon_codigo': cuponCodigo,
+      'uuid_carrito': uuidCarrito,
+      'dispositivo_id': dispositivoId,
+      'estado': estado,
+      'es_offline': esOffline,
+      'estado_sincronizacion': estadoSincronizacion,
+      'fecha_actualizacion': fechaActualizacion?.toUtc().toIso8601String(),
     };
   }
 }

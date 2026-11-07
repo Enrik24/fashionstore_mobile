@@ -3,14 +3,16 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../config/theme.dart';
 import '../../core/providers/cart_provider.dart';
+import '../../core/providers/conflict_provider.dart';
+import '../../core/providers/pending_payment_provider.dart';
+import '../../core/providers/sync_provider.dart';
+import '../offline/widgets/sync_status_banner.dart';
+import '../offline/widgets/offline_data_stamp.dart';
 
 class MainShell extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
 
-  const MainShell({
-    super.key,
-    required this.navigationShell,
-  });
+  const MainShell({super.key, required this.navigationShell});
 
   void _onTap(BuildContext context, int index) {
     navigationShell.goBranch(
@@ -22,7 +24,55 @@ class MainShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: navigationShell,
+      body: Column(
+        children: [
+          const SyncStatusBanner(),
+          const OfflineDataStamp(),
+          Consumer3<SyncProvider, ConflictProvider, PendingPaymentProvider>(
+            builder: (context, sync, conflicts, payments, _) {
+              final pending = sync.pendingCount;
+              final conflictCount = conflicts.pendingCount;
+              final paymentCount = payments.pendingCount;
+              if (pending == 0 && conflictCount == 0 && paymentCount == 0) {
+                return const SizedBox.shrink();
+              }
+              return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+                child: Row(
+                  children: [
+                    if (pending > 0)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ActionChip(
+                          avatar: const Icon(Icons.sync, size: 18),
+                          label: Text('Pendientes: $pending'),
+                          onPressed: () => context.push('/offline/sync'),
+                        ),
+                      ),
+                    if (conflictCount > 0)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ActionChip(
+                          avatar: const Icon(Icons.merge_type, size: 18),
+                          label: Text('Conflictos: $conflictCount'),
+                          onPressed: () => context.push('/offline/conflicts'),
+                        ),
+                      ),
+                    if (paymentCount > 0)
+                      ActionChip(
+                        avatar: const Icon(Icons.schedule_outlined, size: 18),
+                        label: Text('Pagos: $paymentCount'),
+                        onPressed: () => context.push('/offline/payments'),
+                      ),
+                  ],
+                ),
+              );
+            },
+          ),
+          Expanded(child: navigationShell),
+        ],
+      ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: AppColors.surface,
@@ -64,7 +114,10 @@ class MainShell extends StatelessWidget {
                     isLabelVisible: cartCount > 0,
                     label: Text(
                       '$cartCount',
-                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     backgroundColor: AppColors.accent,
                     child: const Icon(Icons.shopping_cart_outlined),
@@ -73,7 +126,10 @@ class MainShell extends StatelessWidget {
                     isLabelVisible: cartCount > 0,
                     label: Text(
                       '$cartCount',
-                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     backgroundColor: AppColors.accent,
                     child: const Icon(Icons.shopping_cart_rounded),

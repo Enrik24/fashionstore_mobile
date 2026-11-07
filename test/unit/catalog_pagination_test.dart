@@ -3,16 +3,16 @@ import 'package:fashionstore_mobile/core/models/ai_model.dart';
 import 'package:fashionstore_mobile/core/models/product_model.dart';
 
 Map<String, dynamic> _productJson(int id, String genero) => {
-      'id': id,
-      'sku': 'SKU-$id',
-      'nombre': 'Prenda $id',
-      'precio': 100.0 + id,
-      'imagenes': [],
-      'estado': 'ACTIVO',
-      'genero': genero,
-      'promedio_valoracion': '4.00',
-      'total_valoraciones': 5,
-    };
+  'id': id,
+  'sku': 'SKU-$id',
+  'nombre': 'Prenda $id',
+  'precio': 100.0 + id,
+  'imagenes': [],
+  'estado': 'ACTIVO',
+  'genero': genero,
+  'promedio_valoracion': '4.00',
+  'total_valoraciones': 5,
+};
 
 void main() {
   group('Paginación del catálogo (formato real del backend)', () {
@@ -99,12 +99,7 @@ void main() {
         'estilo_detectado': 'Casual elegante',
         'mensaje_personalizado': 'Elegimos esto para ti',
         'recomendaciones': [
-          {
-            'producto_id': 1,
-            'nombre': 'P1',
-            'razon': 'R1',
-            'precio': 100,
-          },
+          {'producto_id': 1, 'nombre': 'P1', 'razon': 'R1', 'precio': 100},
         ],
       };
 

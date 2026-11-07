@@ -37,8 +37,9 @@ class _WriteReviewSheetState extends State<WriteReviewSheet> {
   void initState() {
     super.initState();
     _puntuacion = widget.initialPuntuacion.clamp(1, 5);
-    _comentarioController =
-        TextEditingController(text: widget.initialComentario ?? '');
+    _comentarioController = TextEditingController(
+      text: widget.initialComentario ?? '',
+    );
   }
 
   @override
@@ -102,10 +103,9 @@ class _WriteReviewSheetState extends State<WriteReviewSheet> {
             const SizedBox(height: 12),
             Text(
               isEditing ? 'Editar tu valoración' : 'Escribe tu valoración',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.bold),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             Center(

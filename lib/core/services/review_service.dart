@@ -38,8 +38,7 @@ class ReviewService {
         '/productos/$productoId/puede-valorar',
       );
       if (response.data is Map<String, dynamic>) {
-        return CanReviewModel.fromJson(
-            response.data as Map<String, dynamic>);
+        return CanReviewModel.fromJson(response.data as Map<String, dynamic>);
       }
       return CanReviewModel(puedeValorar: false, motivo: 'Sin información');
     } catch (e) {

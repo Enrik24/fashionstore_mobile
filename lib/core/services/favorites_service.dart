@@ -34,8 +34,7 @@ class FavoritesService {
   /// `GET /favoritos/ids` — solo IDs (una llamada para marcar corazones).
   Future<Set<int>> getFavoritoIds() async {
     try {
-      final response =
-          await _apiService.dio.get(AppConstants.epFavoritosIds);
+      final response = await _apiService.dio.get(AppConstants.epFavoritosIds);
       final data = response.data;
       if (data is Map<String, dynamic>) {
         final ids = data['producto_ids'];
@@ -64,8 +63,7 @@ class FavoritesService {
         '${AppConstants.epFavoritos}$productoId',
       );
       if (response.data is Map<String, dynamic>) {
-        return FavoriteModel.fromJson(
-            response.data as Map<String, dynamic>);
+        return FavoriteModel.fromJson(response.data as Map<String, dynamic>);
       }
       throw const FormatException('Respuesta inesperada del servidor');
     } catch (e) {
@@ -76,9 +74,7 @@ class FavoritesService {
   /// `DELETE /favoritos/{producto_id}` — idempotente en el backend.
   Future<void> quitar(int productoId) async {
     try {
-      await _apiService.dio.delete(
-        '${AppConstants.epFavoritos}$productoId',
-      );
+      await _apiService.dio.delete('${AppConstants.epFavoritos}$productoId');
     } catch (e) {
       throw _apiService.handleError(e);
     }

@@ -10,12 +10,12 @@ import 'package:fashionstore_mobile/core/services/catalog_service.dart';
 import 'package:fashionstore_mobile/core/services/storage_service.dart';
 
 ProductModel _product(int id, String genero) => ProductModel(
-      id: id,
-      sku: 'SKU-$id',
-      nombre: 'Prenda $id',
-      precio: 100.0,
-      genero: genero,
-    );
+  id: id,
+  sku: 'SKU-$id',
+  nombre: 'Prenda $id',
+  precio: 100.0,
+  genero: genero,
+);
 
 class FakeAiService extends AiService {
   FakeAiService({required super.apiService});
@@ -31,10 +31,7 @@ class FakeAiService extends AiService {
   }) async {
     if (fail) throw Exception('IA no disponible');
     return stub ??
-        RecomendacionResponse(
-          mensajePersonalizado: '',
-          recomendaciones: [],
-        );
+        RecomendacionResponse(mensajePersonalizado: '', recomendaciones: []);
   }
 }
 
@@ -108,10 +105,8 @@ void main() {
         estiloDetectado: 'Casual',
         mensajePersonalizado: 'Para ti',
         recomendaciones: [
-          RecomendacionItem(
-              productoId: 1, nombre: 'P1', razon: 'R1'),
-          RecomendacionItem(
-              productoId: 2, nombre: 'P2', razon: 'R2'),
+          RecomendacionItem(productoId: 1, nombre: 'P1', razon: 'R1'),
+          RecomendacionItem(productoId: 2, nombre: 'P2', razon: 'R2'),
         ],
       );
       fakeCatalog.details = {1: _product(1, 'HOMBRE'), 2: _product(2, 'MUJER')};

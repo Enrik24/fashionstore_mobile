@@ -82,17 +82,18 @@ void main() {
     test('mayor porcentaje aplicable gana (producto y categoría)', () async {
       fake.stub = [
         PromotionModel(
-            tipo: 'PORCENTAJE',
-            valor: 10,
-            productoIds: [1],
-            categoriaIds: []),
+          tipo: 'PORCENTAJE',
+          valor: 10,
+          productoIds: [1],
+          categoriaIds: [],
+        ),
         PromotionModel(
-            tipo: 'PORCENTAJE',
-            valor: 25,
-            productoIds: [],
-            categoriaIds: [5]),
-        PromotionModel(
-            tipo: 'MONTO_FIJO', valor: 50, productoIds: [1]),
+          tipo: 'PORCENTAJE',
+          valor: 25,
+          productoIds: [],
+          categoriaIds: [5],
+        ),
+        PromotionModel(tipo: 'MONTO_FIJO', valor: 50, productoIds: [1]),
       ];
       await provider.load();
 
@@ -108,7 +109,10 @@ void main() {
     test('has2x1 por producto o categoría', () async {
       fake.stub = [
         PromotionModel(
-            tipo: 'DOS_POR_UNO', productoIds: [3], categoriaIds: [8]),
+          tipo: 'DOS_POR_UNO',
+          productoIds: [3],
+          categoriaIds: [8],
+        ),
       ];
       await provider.load();
 
@@ -128,7 +132,7 @@ void main() {
 
     test('load una sola vez', () async {
       fake.stub = [
-        PromotionModel(tipo: 'PORCENTAJE', valor: 5, productoIds: [1])
+        PromotionModel(tipo: 'PORCENTAJE', valor: 5, productoIds: [1]),
       ];
       await provider.load();
       fake.stub = [];
@@ -159,14 +163,13 @@ void main() {
     });
 
     test('estados confirmado / rechazado / reembolsado', () {
-      PaymentTransactionModel base(String estado) =>
-          PaymentTransactionModel(
-            id: 1,
-            ordenId: 1,
-            monto: 10,
-            metodoPago: 'PAYPAL',
-            estado: estado,
-          );
+      PaymentTransactionModel base(String estado) => PaymentTransactionModel(
+        id: 1,
+        ordenId: 1,
+        monto: 10,
+        metodoPago: 'PAYPAL',
+        estado: estado,
+      );
 
       expect(base('CONFIRMADO').isConfirmed, isTrue);
       expect(base('RECHAZADO').isRejected, isTrue);

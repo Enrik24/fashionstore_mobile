@@ -27,6 +27,8 @@ class AuthProvider extends ChangeNotifier {
   ClienteProfile? _clienteProfile;
   String? _errorMessage;
   bool _isLoading = false;
+  bool _sesionOfflineActiva = false;
+  DateTime? _expiraSesionOffline;
 
   AuthProvider({
     required AuthService authService,
@@ -34,11 +36,11 @@ class AuthProvider extends ChangeNotifier {
     required CartProvider cartProvider,
     FavoritesProvider? favoritesProvider,
     NotificationService? notificationService,
-  })  : _authService = authService,
-        _storageService = storageService,
-        _cartProvider = cartProvider,
-        _favoritesProvider = favoritesProvider,
-        _notificationService = notificationService;
+  }) : _authService = authService,
+       _storageService = storageService,
+       _cartProvider = cartProvider,
+       _favoritesProvider = favoritesProvider,
+       _notificationService = notificationService;
 
   /// Se inyecta desde `main.dart` (el provider se crea antes que este).
   set favoritesProvider(FavoritesProvider? provider) {
@@ -58,12 +60,63 @@ class AuthProvider extends ChangeNotifier {
 
   // Getters
   AuthStatus get status => _status;
-  bool get isAuthenticated => _status == AuthStatus.authenticated && _currentUser != null;
+  bool get isAuthenticated =>
+      _status == AuthStatus.authenticated && _currentUser != null;
   bool get isLoading => _isLoading;
   UserModel? get currentUser => _currentUser;
   ClienteProfile? get clienteProfile => _clienteProfile;
   String? get errorMessage => _errorMessage;
   String? get rememberedEmail => _storageService.getRememberedEmail();
+
+  // [EXAMEN-2] C1.2: estado offline delegado en el servicio (dueño único:
+  // OfflineSessionProvider/SessionService). Sin llamada de red en el camino offline.
+  bool get sesionOfflineActiva => _sesionOfflineActiva && _authService.haySesionValidaOffline;
+  bool get haySesionValida => _authService.haySesionValidaOffline;
+  DateTime? get expiraSesionOffline => _expiraSesionOffline;
+  int get intentosRestantes => _authService.intentosRestantesOffline;
+  Duration get tiempoRestanteOffline => _authService.tiempoRestanteOffline;
+
+  Future<bool> iniciarSesionOffline(String pin) async {
+    try {
+      final ok = await _authService.iniciarSesionOffline(pin);
+      // [EXAMEN-2] C1.2: solo activa si la sesión sigue vigente (no vencida).
+      _sesionOfflineActiva = ok && _authService.haySesionValidaOffline;
+      if (_sesionOfflineActiva) {
+        // Best-effort local: no bloquear el acceso offline si falla la red.
+        try {
+          final estado = await _authService.estadoSesionOffline();
+          _expiraSesionOffline = DateTime.tryParse(
+            (estado['expira_en']?.toString() ?? estado['expiraEn']?.toString() ?? ''),
+          );
+        } catch (_) {}
+      }
+      notifyListeners();
+      return _sesionOfflineActiva;
+    } catch (e) {
+      _errorMessage = e is ApiException ? e.message : e.toString();
+      _sesionOfflineActiva = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<void> borrarDatosDelTenant(int tenantId) async {
+    await _authService.borrarDatosDelTenant(tenantId);
+    if (_currentUser?.tenantId == tenantId) {
+      _sesionOfflineActiva = false;
+      _expiraSesionOffline = null;
+      notifyListeners();
+    }
+  }
+
+  Future<void> cerrarSesionOffline() async {
+    await _authService.cerrarSesionOffline();
+    final tenant = _currentUser?.tenantId;
+    if (tenant != null) await borrarDatosDelTenant(tenant);
+    _sesionOfflineActiva = false;
+    _expiraSesionOffline = null;
+    notifyListeners();
+  }
 
   /// Verifica el estado de autenticación al arrancar la app.
   Future<void> checkAuthStatus() async {
@@ -106,22 +159,14 @@ class AuthProvider extends ChangeNotifier {
       } catch (_) {}
       // Registrar dispositivo para notificaciones push (CU13).
       await _registerPushDevice();
-    } catch (e) {
-      // If token expired or network failed
-      final cachedUser = _storageService.getUser();
-      if (cachedUser != null) {
-        // Keep offline user if available
-        _currentUser = cachedUser;
-        _clienteProfile = _storageService.getClientProfile();
-        _status = AuthStatus.authenticated;
-        await _cartProvider.loadCart();
-        await _registerPushDevice();
-      } else {
-        await _storageService.clearAllSession();
-        _status = AuthStatus.unauthenticated;
-        _cartProvider.clearCartState();
-        _favoritesProvider?.clearState();
-      }
+    } catch (_) {
+      // [EXAMEN-2] Un fallo de red no concede autenticación implícita.
+      // La app conserva el usuario cacheado, pero CU17 exige PIN local.
+      _currentUser = null;
+      _clienteProfile = null;
+      _status = AuthStatus.unauthenticated;
+      _cartProvider.clearCartState();
+      _favoritesProvider?.clearState();
     } finally {
       notifyListeners();
     }
@@ -265,6 +310,11 @@ class AuthProvider extends ChangeNotifier {
     try {
       await _authService.logout();
     } catch (_) {}
+    final tenantId = _currentUser?.tenantId;
+    if (tenantId != null) {
+      await _authService.borrarDatosDelTenant(tenantId);
+    }
+    await _authService.cerrarSesionOffline();
     await _storageService.clearAllSession();
     _currentUser = null;
     _clienteProfile = null;

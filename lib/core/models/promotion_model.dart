@@ -45,8 +45,8 @@ class PromotionModel {
       valor: rawValor == null
           ? null
           : (rawValor is num
-              ? rawValor.toDouble()
-              : double.tryParse(rawValor.toString())),
+                ? rawValor.toDouble()
+                : double.tryParse(rawValor.toString())),
       productoIds: _parseIds(json['producto_ids']),
       categoriaIds: _parseIds(json['categoria_ids']),
     );

@@ -7,8 +7,7 @@ import 'api_service.dart';
 class PromotionService {
   final ApiService _apiService;
 
-  PromotionService({required ApiService apiService})
-      : _apiService = apiService;
+  PromotionService({required ApiService apiService}) : _apiService = apiService;
 
   Future<List<PromotionModel>> getPromocionesActivas() async {
     try {

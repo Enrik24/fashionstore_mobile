@@ -10,6 +10,14 @@ class CouponService {
 
   CouponService({required ApiService apiService}) : _apiService = apiService;
 
+  /// [EXAMEN-2] Los cupones requieren validación online: el precio final y
+  /// las reglas de promoción pueden haber cambiado desde la descarga offline.
+  CouponValidationResult rejectOfflineCoupon() => CouponValidationResult(
+    valido: false,
+    mensaje:
+        'Los cupones requieren conexión. El total se recalculará al sincronizar.',
+  );
+
   /// `GET /cupones/disponibles` — cupones vigentes para el cliente.
   Future<List<CouponModel>> getDisponibles() async {
     try {
@@ -44,10 +52,13 @@ class CouponService {
       );
       if (response.data is Map<String, dynamic>) {
         return CouponValidationResult.fromJson(
-            response.data as Map<String, dynamic>);
+          response.data as Map<String, dynamic>,
+        );
       }
       return CouponValidationResult(
-          valido: false, mensaje: 'Respuesta inesperada del servidor');
+        valido: false,
+        mensaje: 'Respuesta inesperada del servidor',
+      );
     } catch (e) {
       throw _apiService.handleError(e);
     }

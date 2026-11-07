@@ -1,5 +1,10 @@
 # fashionstore_mobile
 
+> **Examen 2 — plataforma objetivo: solo Android (D-MOV-22, plan v1.2).**
+> - `minSdk 21+`, permisos `INTERNET`, `CAMERA` (POS `mobile_scanner`), `POST_NOTIFICATIONS` (FCM Android 13+).
+> - `release` usa firma `debug` **solo para demo**; el APK/AAB de entrega requiere keystore propio.
+> - Cifrado local con `sqflite_sqlcipher` (Keystore) + verificación en emulador/dispositivo Android. `ios/` sin build exigido.
+
 A new Flutter project.
 
 ## Getting Started

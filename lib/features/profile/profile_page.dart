@@ -6,6 +6,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../config/theme.dart';
 import '../../core/providers/auth_provider.dart';
+import '../../core/providers/conflict_provider.dart';
+import '../../core/providers/pending_payment_provider.dart';
+import '../../core/providers/sync_provider.dart';
 import '../../core/widgets/custom_app_bar.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/secondary_button.dart';
@@ -26,24 +29,34 @@ class ProfilePage extends StatelessWidget {
             color: AppColors.primary,
           ),
         ),
-        content: const Text('¿Estás seguro de que deseas cerrar tu sesión en FashionStore?'),
+        content: const Text(
+          '¿Estás seguro de que deseas cerrar tu sesión en FashionStore?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Cancelar', style: TextStyle(color: AppColors.textSecondary)),
+            child: const Text(
+              'Cancelar',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
             onPressed: () async {
               Navigator.of(dialogContext).pop();
               final auth = context.read<AuthProvider>();
               await auth.logout();
               if (context.mounted) {
-                AppNotifications.showSuccess(context, 'Sesión cerrada exitosamente.');
+                AppNotifications.showSuccess(
+                  context,
+                  'Sesión cerrada exitosamente.',
+                );
                 context.go('/login');
               }
             },
@@ -59,13 +72,21 @@ class ProfilePage extends StatelessWidget {
     final auth = context.watch<AuthProvider>();
     final user = auth.currentUser;
     final profile = auth.clienteProfile;
+    final sync = context.watch<SyncProvider>();
+    final conflicts = context.watch<ConflictProvider>();
+    final payments = context.watch<PendingPaymentProvider>();
+    final roles =
+        user?.roles.map((rol) => rol.nombre.toLowerCase()).toSet() ??
+        const <String>{};
+    final puedeUsarPos =
+        roles.contains('cajero') ||
+        roles.contains('encargado') ||
+        roles.contains('encargado de sucursal') ||
+        roles.contains('administrador');
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: const CustomAppBar(
-        title: 'Mi Perfil',
-        showAvatar: false,
-      ),
+      appBar: const CustomAppBar(title: 'Mi Perfil', showAvatar: false),
       body: auth.isAuthenticated && user != null
           ? RefreshIndicator(
               onRefresh: () => auth.refreshProfile(),
@@ -83,7 +104,10 @@ class ProfilePage extends StatelessWidget {
                             padding: const EdgeInsets.all(4),
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              border: Border.all(color: AppColors.accent, width: 2),
+                              border: Border.all(
+                                color: AppColors.accent,
+                                width: 2,
+                              ),
                             ),
                             child: CircleAvatar(
                               radius: 44,
@@ -118,13 +142,18 @@ class ProfilePage extends StatelessWidget {
                           const SizedBox(height: 8),
                           // Role badge
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.accent.withOpacity(0.12),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              user.roles.isNotEmpty ? user.roles.first.nombre : 'Cliente',
+                              user.roles.isNotEmpty
+                                  ? user.roles.first.nombre
+                                  : 'Cliente',
                               style: const TextStyle(
                                 color: AppColors.accent,
                                 fontSize: 12,
@@ -159,7 +188,11 @@ class ProfilePage extends StatelessWidget {
                             children: [
                               Row(
                                 children: [
-                                  const Icon(Icons.badge_outlined, size: 20, color: AppColors.primary),
+                                  const Icon(
+                                    Icons.badge_outlined,
+                                    size: 20,
+                                    color: AppColors.primary,
+                                  ),
                                   const SizedBox(width: 8),
                                   Text(
                                     'Datos Personales',
@@ -173,8 +206,18 @@ class ProfilePage extends StatelessWidget {
                               ),
                               TextButton.icon(
                                 onPressed: () => context.push('/profile/edit'),
-                                icon: const Icon(Icons.edit_outlined, size: 16, color: AppColors.accent),
-                                label: const Text('Editar', style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold)),
+                                icon: const Icon(
+                                  Icons.edit_outlined,
+                                  size: 16,
+                                  color: AppColors.accent,
+                                ),
+                                label: const Text(
+                                  'Editar',
+                                  style: TextStyle(
+                                    color: AppColors.accent,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
                             ],
                           ),
@@ -197,7 +240,9 @@ class ProfilePage extends StatelessWidget {
                           _buildProfileRow(
                             icon: Icons.phone_outlined,
                             label: 'Teléfono',
-                            value: (user.telefono != null && user.telefono!.isNotEmpty)
+                            value:
+                                (user.telefono != null &&
+                                    user.telefono!.isNotEmpty)
                                 ? user.telefono!
                                 : (profile?.telefono ?? 'No especificado'),
                           ),
@@ -210,7 +255,9 @@ class ProfilePage extends StatelessWidget {
                             _buildProfileRow(
                               icon: Icons.calendar_today_outlined,
                               label: 'Miembro desde',
-                              value: DateFormat('dd/MM/yyyy').format(user.fechaRegistro!),
+                              value: DateFormat(
+                                'dd/MM/yyyy',
+                              ).format(user.fechaRegistro!),
                               isLast: true,
                             ),
                         ],
@@ -241,11 +288,27 @@ class ProfilePage extends StatelessWidget {
                                 color: AppColors.primary.withOpacity(0.08),
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: const Icon(Icons.receipt_long_outlined, color: AppColors.primary, size: 20),
+                              child: const Icon(
+                                Icons.receipt_long_outlined,
+                                color: AppColors.primary,
+                                size: 20,
+                              ),
                             ),
-                            title: const Text('Historial de Compras', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                            subtitle: const Text('Revisa tus compras en línea y facturación', style: TextStyle(fontSize: 12)),
-                            trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary),
+                            title: const Text(
+                              'Historial de Compras',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                            subtitle: const Text(
+                              'Revisa tus compras en línea y facturación',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                            trailing: const Icon(
+                              Icons.chevron_right_rounded,
+                              color: AppColors.textSecondary,
+                            ),
                             onTap: () => context.push('/profile/orders'),
                           ),
                           const Divider(height: 1),
@@ -256,11 +319,27 @@ class ProfilePage extends StatelessWidget {
                                 color: AppColors.accent.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: const Icon(Icons.favorite_outline, color: AppColors.accent, size: 20),
+                              child: const Icon(
+                                Icons.favorite_outline,
+                                color: AppColors.accent,
+                                size: 20,
+                              ),
                             ),
-                            title: const Text('Mis Favoritos', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                            subtitle: const Text('Prendas que guardaste para después', style: TextStyle(fontSize: 12)),
-                            trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary),
+                            title: const Text(
+                              'Mis Favoritos',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                            subtitle: const Text(
+                              'Prendas que guardaste para después',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                            trailing: const Icon(
+                              Icons.chevron_right_rounded,
+                              color: AppColors.textSecondary,
+                            ),
                             onTap: () => context.push('/favorites'),
                           ),
                           const Divider(height: 1),
@@ -271,11 +350,27 @@ class ProfilePage extends StatelessWidget {
                                 color: AppColors.primary.withOpacity(0.08),
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: const Icon(Icons.event_seat_outlined, color: AppColors.primary, size: 20),
+                              child: const Icon(
+                                Icons.event_seat_outlined,
+                                color: AppColors.primary,
+                                size: 20,
+                              ),
                             ),
-                            title: const Text('Mis Reservas en Tienda', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                            subtitle: const Text('Prendas apartadas para probar en sucursales', style: TextStyle(fontSize: 12)),
-                            trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary),
+                            title: const Text(
+                              'Mis Reservas en Tienda',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                            subtitle: const Text(
+                              'Prendas apartadas para probar en sucursales',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                            trailing: const Icon(
+                              Icons.chevron_right_rounded,
+                              color: AppColors.textSecondary,
+                            ),
                             onTap: () => context.push('/reservations'),
                           ),
                           const Divider(height: 1),
@@ -286,11 +381,27 @@ class ProfilePage extends StatelessWidget {
                                 color: AppColors.primary.withOpacity(0.08),
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: const Icon(Icons.assignment_return_outlined, color: AppColors.primary, size: 20),
+                              child: const Icon(
+                                Icons.assignment_return_outlined,
+                                color: AppColors.primary,
+                                size: 20,
+                              ),
                             ),
-                            title: const Text('Mis Devoluciones', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                            subtitle: const Text('Seguimiento de devoluciones y cambios', style: TextStyle(fontSize: 12)),
-                            trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary),
+                            title: const Text(
+                              'Mis Devoluciones',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                            subtitle: const Text(
+                              'Seguimiento de devoluciones y cambios',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                            trailing: const Icon(
+                              Icons.chevron_right_rounded,
+                              color: AppColors.textSecondary,
+                            ),
                             onTap: () => context.push('/profile/returns'),
                           ),
                         ],
@@ -298,6 +409,113 @@ class ProfilePage extends StatelessWidget {
                     ),
                     const SizedBox(height: 20),
 
+                    // [EXAMEN-2] Acceso a las funciones operativas offline.
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.04),
+                            blurRadius: 15,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
+                            child: Text(
+                              'Operación offline',
+                              style: GoogleFonts.playfairDisplay(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ),
+                          ListTile(
+                            leading: const Icon(
+                              Icons.download_for_offline_outlined,
+                              color: AppColors.primary,
+                            ),
+                            title: const Text('Descargar datos'),
+                            subtitle: const Text(
+                              'Catálogo, clientes y existencias',
+                            ),
+                            trailing: const Icon(Icons.chevron_right_rounded),
+                            onTap: () => context.push('/offline/download'),
+                          ),
+                          ListTile(
+                            leading: Badge(
+                              isLabelVisible: sync.pendingCount > 0,
+                              label: Text('${sync.pendingCount}'),
+                              child: const Icon(
+                                Icons.sync,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            title: const Text('Centro de sincronización'),
+                            subtitle: Text(
+                              '${sync.pendingCount} operaciones pendientes',
+                            ),
+                            trailing: const Icon(Icons.chevron_right_rounded),
+                            onTap: () => context.push('/offline/sync'),
+                          ),
+                          ListTile(
+                            leading: Badge(
+                              isLabelVisible: conflicts.pendingCount > 0,
+                              label: Text('${conflicts.pendingCount}'),
+                              child: const Icon(
+                                Icons.merge_type,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            title: const Text('Conflictos por resolver'),
+                            subtitle: Text(
+                              '${conflicts.pendingCount} conflictos pendientes',
+                            ),
+                            trailing: const Icon(Icons.chevron_right_rounded),
+                            onTap: () => context.push('/offline/conflicts'),
+                          ),
+                          ListTile(
+                            leading: Badge(
+                              isLabelVisible: payments.pendingCount > 0,
+                              label: Text('${payments.pendingCount}'),
+                              child: const Icon(
+                                Icons.schedule_outlined,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            title: const Text('Pagos diferidos'),
+                            subtitle: Text(
+                              '${payments.pendingCount} pagos por regularizar',
+                            ),
+                            trailing: const Icon(Icons.chevron_right_rounded),
+                            onTap: () => context.push('/offline/payments'),
+                          ),
+                          if (puedeUsarPos)
+                            ListTile(
+                              leading: const Icon(
+                                Icons.point_of_sale_outlined,
+                                color: AppColors.primary,
+                              ),
+                              title: const Text('Punto de venta'),
+                              subtitle: const Text(
+                                'Registrar ventas de contado offline',
+                              ),
+                              trailing: const Icon(Icons.chevron_right_rounded),
+                              onTap: () => context.push('/pos'),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // AI Features Card
                     // AI Features Card
                     Container(
                       padding: const EdgeInsets.all(12),
@@ -321,11 +539,27 @@ class ProfilePage extends StatelessWidget {
                                 color: AppColors.accent.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: const Icon(Icons.auto_awesome, color: AppColors.accent, size: 20),
+                              child: const Icon(
+                                Icons.auto_awesome,
+                                color: AppColors.accent,
+                                size: 20,
+                              ),
                             ),
-                            title: const Text('Asesor de Moda IA', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                            subtitle: const Text('Chatea y recibe recomendaciones de estilo', style: TextStyle(fontSize: 12)),
-                            trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.accent),
+                            title: const Text(
+                              'Asesor de Moda IA',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                            subtitle: const Text(
+                              'Chatea y recibe recomendaciones de estilo',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                            trailing: const Icon(
+                              Icons.chevron_right_rounded,
+                              color: AppColors.accent,
+                            ),
                             onTap: () => context.push('/ai-assistant'),
                           ),
                           const Divider(height: 1),
@@ -336,11 +570,27 @@ class ProfilePage extends StatelessWidget {
                                 color: AppColors.accent.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: const Icon(Icons.accessibility_new, color: AppColors.accent, size: 20),
+                              child: const Icon(
+                                Icons.accessibility_new,
+                                color: AppColors.accent,
+                                size: 20,
+                              ),
                             ),
-                            title: const Text('Vestidor Virtual', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                            subtitle: const Text('Pruébate prendas con foto e inteligencia artificial', style: TextStyle(fontSize: 12)),
-                            trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.accent),
+                            title: const Text(
+                              'Vestidor Virtual',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                            subtitle: const Text(
+                              'Pruébate prendas con foto e inteligencia artificial',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                            trailing: const Icon(
+                              Icons.chevron_right_rounded,
+                              color: AppColors.accent,
+                            ),
                             onTap: () => context.push('/ar-fitting'),
                           ),
                         ],
@@ -371,11 +621,27 @@ class ProfilePage extends StatelessWidget {
                                 color: AppColors.primary.withOpacity(0.08),
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: const Icon(Icons.lock_reset_rounded, color: AppColors.primary, size: 20),
+                              child: const Icon(
+                                Icons.lock_reset_rounded,
+                                color: AppColors.primary,
+                                size: 20,
+                              ),
                             ),
-                            title: const Text('Cambiar Contraseña', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                            subtitle: const Text('Actualiza tu clave de acceso', style: TextStyle(fontSize: 12)),
-                            trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary),
+                            title: const Text(
+                              'Cambiar Contraseña',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                            subtitle: const Text(
+                              'Actualiza tu clave de acceso',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                            trailing: const Icon(
+                              Icons.chevron_right_rounded,
+                              color: AppColors.textSecondary,
+                            ),
                             onTap: () => context.push('/change-password'),
                           ),
                           const Divider(height: 1),
@@ -386,11 +652,28 @@ class ProfilePage extends StatelessWidget {
                                 color: AppColors.error.withOpacity(0.08),
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: const Icon(Icons.logout_rounded, color: AppColors.error, size: 20),
+                              child: const Icon(
+                                Icons.logout_rounded,
+                                color: AppColors.error,
+                                size: 20,
+                              ),
                             ),
-                            title: const Text('Cerrar Sesión', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: AppColors.error)),
-                            subtitle: const Text('Finalizar tu sesión actual', style: TextStyle(fontSize: 12)),
-                            trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.error),
+                            title: const Text(
+                              'Cerrar Sesión',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                                color: AppColors.error,
+                              ),
+                            ),
+                            subtitle: const Text(
+                              'Finalizar tu sesión actual',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                            trailing: const Icon(
+                              Icons.chevron_right_rounded,
+                              color: AppColors.error,
+                            ),
                             onTap: () => _confirmLogout(context),
                           ),
                         ],

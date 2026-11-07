@@ -39,8 +39,9 @@ class CouponModel {
 
   bool get isPorcentaje => tipo.toUpperCase() == 'PORCENTAJE';
 
-  String get valorLabel =>
-      isPorcentaje ? '${valor.toStringAsFixed(0)}% OFF' : 'Bs. ${valor.toStringAsFixed(2)} OFF';
+  String get valorLabel => isPorcentaje
+      ? '${valor.toStringAsFixed(0)}% OFF'
+      : 'Bs. ${valor.toStringAsFixed(2)} OFF';
 
   static int _parseInt(dynamic raw, [int fallback = 0]) {
     if (raw is int) return raw;

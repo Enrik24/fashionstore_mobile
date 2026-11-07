@@ -60,15 +60,17 @@ class _LoginPageState extends State<LoginPage> {
       // CU01: mensajes específicos para cuenta inactiva o bloqueada
       // (el backend envía el detalle; aquí se refuerza la guía).
       final msg =
-          auth.errorMessage ?? 'Error al iniciar sesión. Revisa tus credenciales.';
+          auth.errorMessage ??
+          'Error al iniciar sesión. Revisa tus credenciales.';
       final lower = msg.toLowerCase();
-      final texto = (lower.contains('inactiv') ||
+      final texto =
+          (lower.contains('inactiv') ||
               lower.contains('deshabilit') ||
               lower.contains('suspend'))
           ? '$msg Si crees que es un error, contacta al administrador.'
           : (lower.contains('bloque')
-              ? '$msg Inténtalo de nuevo más tarde o contacta al administrador.'
-              : msg);
+                ? '$msg Inténtalo de nuevo más tarde o contacta al administrador.'
+                : msg);
       AppNotifications.showError(context, texto);
     }
   }
@@ -283,7 +285,11 @@ class _LoginPageState extends State<LoginPage> {
                 Center(
                   child: TextButton.icon(
                     onPressed: () => context.go('/home'),
-                    icon: const Icon(Icons.arrow_forward_rounded, size: 16, color: AppColors.textSecondary),
+                    icon: const Icon(
+                      Icons.arrow_forward_rounded,
+                      size: 16,
+                      color: AppColors.textSecondary,
+                    ),
                     label: const Text(
                       'Continuar como invitado',
                       style: TextStyle(

@@ -74,12 +74,12 @@ void main() {
     });
 
     test('labels de motivos y estados', () {
-      expect(MotivosDevolucion.label('TALLA_INCORRECTA'),
-          'Talla incorrecta');
-      expect(MotivosDevolucion.label('DEFECTO_FABRICA'),
-          'Defecto de fábrica');
-      expect(EstadosDevolucion.label('PENDIENTE_REEMBOLSO'),
-          'Pendiente de reembolso');
+      expect(MotivosDevolucion.label('TALLA_INCORRECTA'), 'Talla incorrecta');
+      expect(MotivosDevolucion.label('DEFECTO_FABRICA'), 'Defecto de fábrica');
+      expect(
+        EstadosDevolucion.label('PENDIENTE_REEMBOLSO'),
+        'Pendiente de reembolso',
+      );
       expect(EstadosDevolucion.label('COMPLETADA'), 'Completada');
       expect(MotivosDevolucion.todos, hasLength(4));
     });

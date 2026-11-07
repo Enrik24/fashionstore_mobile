@@ -110,7 +110,10 @@ class ChatMessage {
   bool get isUser => role == 'user';
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) {
-    var rawProds = json['productos_mencionados'] ?? json['productos'] ?? json['productos_sugeridos'];
+    var rawProds =
+        json['productos_mencionados'] ??
+        json['productos'] ??
+        json['productos_sugeridos'];
     List<dynamic>? prods;
     if (rawProds is List) {
       prods = rawProds;
@@ -160,7 +163,10 @@ class AsistenteChatResponse {
       sugs = rawSugerencias.map((e) => e.toString()).toList();
     }
 
-    var rawProds = json['productos_mencionados'] ?? json['productos'] ?? json['productos_sugeridos'];
+    var rawProds =
+        json['productos_mencionados'] ??
+        json['productos'] ??
+        json['productos_sugeridos'];
     List<dynamic> prods = [];
     if (rawProds is List) {
       prods = rawProds;

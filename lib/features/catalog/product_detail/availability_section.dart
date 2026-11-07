@@ -33,12 +33,15 @@ class _AvailabilitySectionState extends State<AvailabilitySection> {
   int? _selectedSucursalId;
 
   Future<void> _comoLlegar(
-      BuildContext context, DisponibilidadItem item) async {
+    BuildContext context,
+    DisponibilidadItem item,
+  ) async {
     if (item.latitud == null || item.longitud == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-              'Esta sucursal no tiene ubicación registrada en el mapa'),
+            'Esta sucursal no tiene ubicación registrada en el mapa',
+          ),
         ),
       );
       return;
@@ -52,8 +55,7 @@ class _AvailabilitySectionState extends State<AvailabilitySection> {
       } else if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(
-                'No se pudo abrir el mapa en este dispositivo'),
+            content: Text('No se pudo abrir el mapa en este dispositivo'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -62,8 +64,7 @@ class _AvailabilitySectionState extends State<AvailabilitySection> {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(
-                'No se pudo abrir el mapa en este dispositivo'),
+            content: Text('No se pudo abrir el mapa en este dispositivo'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -77,8 +78,10 @@ class _AvailabilitySectionState extends State<AvailabilitySection> {
       return const Center(
         child: Padding(
           padding: EdgeInsets.all(16),
-          child:
-              CircularProgressIndicator(strokeWidth: 2, color: AppColors.accent),
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: AppColors.accent,
+          ),
         ),
       );
     }
@@ -91,13 +94,15 @@ class _AvailabilitySectionState extends State<AvailabilitySection> {
           decoration: BoxDecoration(
             color: AppColors.warning.withOpacity(0.08),
             borderRadius: BorderRadius.circular(12),
-            border:
-                Border.all(color: AppColors.warning.withOpacity(0.4)),
+            border: Border.all(color: AppColors.warning.withOpacity(0.4)),
           ),
           child: Row(
             children: [
-              const Icon(Icons.inventory_2_outlined,
-                  color: AppColors.warning, size: 20),
+              const Icon(
+                Icons.inventory_2_outlined,
+                color: AppColors.warning,
+                size: 20,
+              ),
               const SizedBox(width: 10),
               const Expanded(
                 child: Text(
@@ -123,8 +128,11 @@ class _AvailabilitySectionState extends State<AvailabilitySection> {
         ),
         child: Row(
           children: [
-            const Icon(Icons.info_outline,
-                color: AppColors.textSecondary, size: 20),
+            const Icon(
+              Icons.info_outline,
+              color: AppColors.textSecondary,
+              size: 20,
+            ),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
@@ -137,10 +145,10 @@ class _AvailabilitySectionState extends State<AvailabilitySection> {
       );
     }
 
-    final conStock =
-        widget.availabilityList.where((e) => e.stock > 0).toList();
-    final sinStock =
-        widget.availabilityList.where((e) => e.stock <= 0).toList();
+    final conStock = widget.availabilityList.where((e) => e.stock > 0).toList();
+    final sinStock = widget.availabilityList
+        .where((e) => e.stock <= 0)
+        .toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -152,18 +160,17 @@ class _AvailabilitySectionState extends State<AvailabilitySection> {
                 'Disponibilidad en Sucursales',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ),
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.success.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
@@ -179,8 +186,11 @@ class _AvailabilitySectionState extends State<AvailabilitySection> {
                 ),
                 if (widget.onRefresh != null)
                   IconButton(
-                    icon: const Icon(Icons.refresh,
-                        size: 18, color: AppColors.textSecondary),
+                    icon: const Icon(
+                      Icons.refresh,
+                      size: 18,
+                      color: AppColors.textSecondary,
+                    ),
                     tooltip: 'Actualizar disponibilidad',
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
@@ -197,13 +207,15 @@ class _AvailabilitySectionState extends State<AvailabilitySection> {
             decoration: BoxDecoration(
               color: AppColors.error.withOpacity(0.06),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                  color: AppColors.error.withOpacity(0.3)),
+              border: Border.all(color: AppColors.error.withOpacity(0.3)),
             ),
             child: const Row(
               children: [
-                Icon(Icons.remove_shopping_cart_outlined,
-                    color: AppColors.error, size: 20),
+                Icon(
+                  Icons.remove_shopping_cart_outlined,
+                  color: AppColors.error,
+                  size: 20,
+                ),
                 SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -221,7 +233,10 @@ class _AvailabilitySectionState extends State<AvailabilitySection> {
   }
 
   Widget _buildBranchRow(
-      BuildContext context, DisponibilidadItem item, bool hasStock) {
+    BuildContext context,
+    DisponibilidadItem item,
+    bool hasStock,
+  ) {
     final selected = _selectedSucursalId == item.sucursalId;
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -233,8 +248,8 @@ class _AvailabilitySectionState extends State<AvailabilitySection> {
           color: selected
               ? AppColors.accent
               : (hasStock
-                  ? AppColors.border
-                  : AppColors.error.withOpacity(0.3)),
+                    ? AppColors.border
+                    : AppColors.error.withOpacity(0.3)),
           width: selected ? 1.5 : 1,
         ),
       ),
@@ -243,9 +258,8 @@ class _AvailabilitySectionState extends State<AvailabilitySection> {
           InkWell(
             onTap: hasStock
                 ? () => setState(() {
-                      _selectedSucursalId =
-                          selected ? null : item.sucursalId;
-                    })
+                    _selectedSucursalId = selected ? null : item.sucursalId;
+                  })
                 : null,
             borderRadius: BorderRadius.circular(8),
             child: Row(
@@ -256,8 +270,7 @@ class _AvailabilitySectionState extends State<AvailabilitySection> {
                     value: item.sucursalId,
                     groupValue: _selectedSucursalId,
                     activeColor: AppColors.accent,
-                    onChanged: (v) =>
-                        setState(() => _selectedSucursalId = v),
+                    onChanged: (v) => setState(() => _selectedSucursalId = v),
                   )
                 else
                   Container(
@@ -280,25 +293,24 @@ class _AvailabilitySectionState extends State<AvailabilitySection> {
                       Text(
                         item.sucursalNombre,
                         style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 14),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
                       ),
                       if (item.direccion != null) ...[
                         const SizedBox(height: 2),
                         Text(
                           item.direccion!,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
-                              ?.copyWith(fontSize: 12),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodySmall?.copyWith(fontSize: 12),
                         ),
                       ],
                       if (item.telefono != null) ...[
                         const SizedBox(height: 2),
                         Text(
                           'Tel: ${item.telefono}',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
+                          style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
                                 color: AppColors.textSecondary,
                                 fontSize: 11,
@@ -313,13 +325,9 @@ class _AvailabilitySectionState extends State<AvailabilitySection> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      hasStock
-                          ? '${item.stock} disponibles'
-                          : 'Agotado',
+                      hasStock ? '${item.stock} disponibles' : 'Agotado',
                       style: TextStyle(
-                        color: hasStock
-                            ? AppColors.success
-                            : AppColors.error,
+                        color: hasStock ? AppColors.success : AppColors.error,
                         fontWeight: FontWeight.bold,
                         fontSize: 12,
                       ),
@@ -327,26 +335,25 @@ class _AvailabilitySectionState extends State<AvailabilitySection> {
                     if (item.cantidadReservada > 0)
                       Text(
                         '${item.cantidadReservada} reserv.',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(fontSize: 10, color: AppColors.warning),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontSize: 10,
+                          color: AppColors.warning,
+                        ),
                       ),
                     if (item.cantidadVendida > 0)
                       Text(
                         '${item.cantidadVendida} vend.',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(fontSize: 10, color: AppColors.textSecondary),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontSize: 10,
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     if (item.talla != null || item.color != null)
                       Text(
                         '${item.talla ?? ''} ${item.color != null ? '• ${item.color}' : ''}',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(fontSize: 10),
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodySmall?.copyWith(fontSize: 10),
                       ),
                   ],
                 ),
@@ -362,12 +369,13 @@ class _AvailabilitySectionState extends State<AvailabilitySection> {
                     child: OutlinedButton.icon(
                       onPressed: () => _comoLlegar(context, item),
                       icon: const Icon(Icons.map_outlined, size: 16),
-                      label: const Text('Cómo llegar',
-                          style: TextStyle(fontSize: 12)),
+                      label: const Text(
+                        'Cómo llegar',
+                        style: TextStyle(fontSize: 12),
+                      ),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.primary,
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 8),
+                        padding: const EdgeInsets.symmetric(vertical: 8),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
@@ -380,17 +388,19 @@ class _AvailabilitySectionState extends State<AvailabilitySection> {
                   child: ElevatedButton.icon(
                     onPressed: widget.onReservarEnSucursal == null
                         ? null
-                        : () =>
-                            widget.onReservarEnSucursal!(item),
-                    icon: const Icon(Icons.bookmark_add_outlined,
-                        size: 16, color: Colors.white),
-                    label: const Text('Reservar aquí',
-                        style: TextStyle(
-                            fontSize: 12, color: Colors.white)),
+                        : () => widget.onReservarEnSucursal!(item),
+                    icon: const Icon(
+                      Icons.bookmark_add_outlined,
+                      size: 16,
+                      color: Colors.white,
+                    ),
+                    label: const Text(
+                      'Reservar aquí',
+                      style: TextStyle(fontSize: 12, color: Colors.white),
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.accent,
-                      padding:
-                          const EdgeInsets.symmetric(vertical: 8),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),

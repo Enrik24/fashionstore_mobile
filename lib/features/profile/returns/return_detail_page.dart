@@ -37,15 +37,13 @@ class _ReturnDetailPageState extends State<ReturnDetailPage> {
     });
     try {
       // Reutilizar caché del provider si ya la tiene.
-      final cached = context
-          .read<ReturnProvider>()
-          .requests
-          .where((r) => r.id == widget.solicitudId);
+      final cached = context.read<ReturnProvider>().requests.where(
+        (r) => r.id == widget.solicitudId,
+      );
       if (cached.isNotEmpty) {
         _request = cached.first;
       }
-      final service =
-          ReturnService(apiService: context.read<ApiService>());
+      final service = ReturnService(apiService: context.read<ApiService>());
       final fresh = await service.getSolicitud(widget.solicitudId);
       if (!mounted) return;
       setState(() {
@@ -94,8 +92,7 @@ class _ReturnDetailPageState extends State<ReturnDetailPage> {
       return [
         done('Pendiente'),
         done('En revisión'),
-        _TimelineStep(
-            label: 'Rechazada', done: true, isRejected: true),
+        _TimelineStep(label: 'Rechazada', done: true, isRejected: true),
       ];
     }
     final steps = <_TimelineStep>[
@@ -132,62 +129,59 @@ class _ReturnDetailPageState extends State<ReturnDetailPage> {
       ),
       body: _isLoading && _request == null
           ? const Center(
-              child:
-                  CircularProgressIndicator(color: AppColors.accent))
+              child: CircularProgressIndicator(color: AppColors.accent),
+            )
           : _error != null && _request == null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.error_outline,
-                            size: 56, color: AppColors.error),
-                        const SizedBox(height: 12),
-                        Text(_error!,
-                            textAlign: TextAlign.center),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: _load,
-                          child: const Text('Reintentar'),
-                        ),
-                      ],
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      size: 56,
+                      color: AppColors.error,
                     ),
-                  ),
-                )
-              : RefreshIndicator(
-                  color: AppColors.accent,
-                  onRefresh: _load,
-                  child: SingleChildScrollView(
-                    physics:
-                        const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
-                      children: [
-                        _buildHeader(_request!, dateFormat),
-                        const SizedBox(height: 16),
-                        _buildTimeline(_request!),
-                        const SizedBox(height: 16),
-                        _buildItems(_request!),
-                        if (_request!.observacionesStaff !=
-                                null &&
-                            _request!.observacionesStaff!
-                                .isNotEmpty) ...[
-                          const SizedBox(height: 16),
-                          _buildStaffNotes(_request!),
-                        ],
-                        const SizedBox(height: 32),
-                      ],
+                    const SizedBox(height: 12),
+                    Text(_error!, textAlign: TextAlign.center),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: _load,
+                      child: const Text('Reintentar'),
                     ),
-                  ),
+                  ],
                 ),
+              ),
+            )
+          : RefreshIndicator(
+              color: AppColors.accent,
+              onRefresh: _load,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHeader(_request!, dateFormat),
+                    const SizedBox(height: 16),
+                    _buildTimeline(_request!),
+                    const SizedBox(height: 16),
+                    _buildItems(_request!),
+                    if (_request!.observacionesStaff != null &&
+                        _request!.observacionesStaff!.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      _buildStaffNotes(_request!),
+                    ],
+                    const SizedBox(height: 32),
+                  ],
+                ),
+              ),
+            ),
     );
   }
 
-  Widget _buildHeader(
-      ReturnRequestModel r, DateFormat dateFormat) {
+  Widget _buildHeader(ReturnRequestModel r, DateFormat dateFormat) {
     final color = _statusColor(r.estado);
     return Container(
       padding: const EdgeInsets.all(16),
@@ -202,44 +196,80 @@ class _ReturnDetailPageState extends State<ReturnDetailPage> {
           Row(
             children: [
               Expanded(
-                child: Text(r.numeroSolicitud,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16)),
+                child: Text(
+                  r.numeroSolicitud,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 4),
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: color.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(10),
-                  border:
-                      Border.all(color: color.withOpacity(0.4)),
+                  border: Border.all(color: color.withOpacity(0.4)),
                 ),
                 child: Text(
                   EstadosDevolucion.label(r.estado),
                   style: TextStyle(
-                      color: color,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold),
+                    color: color,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 8),
+          // [EXAMEN-2] Fase 3 (CU13/CU18): tipo canónico, plazo, diferencia,
+          // número de reposición y estado de sincronización.
+          Text(
+            r.isReposicion
+                ? 'Reposición'
+                : r.isCambio
+                ? 'Cambio'
+                : 'Devolución',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          if (r.numeroReposicion != null)
+            Text('Número de reposición: ${r.numeroReposicion}'),
           Text(
             '${r.isCambio ? 'Cambio' : 'Devolución'} • ${MotivosDevolucion.label(r.motivo)}',
-            style: const TextStyle(
-                color: AppColors.textSecondary),
+            style: const TextStyle(color: AppColors.textSecondary),
           ),
-          if (r.motivoDetalle != null &&
-              r.motivoDetalle!.isNotEmpty)
+          if (r.fechaCambioLimite != null)
+            Text(
+              'Cambio posible hasta ${dateFormat.format(r.fechaCambioLimite!)}',
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.textMuted,
+              ),
+            ),
+          if (r.diferenciaPrecio != null)
+            Text(
+              'Diferencia: Bs. ${r.diferenciaPrecio!.toStringAsFixed(2)} '
+              '(${TipoDiferencia.label(r.clasificacionDiferencia)})',
+            ),
+          if (r.esOffline)
+            Text(
+              'Registrada offline • ${r.estadoSincronizacion ?? 'PENDIENTE_SINCRONIZACION'}',
+              style: TextStyle(color: Colors.orange.shade800),
+            ),
+          if (r.motivoDetalle != null && r.motivoDetalle!.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 4),
-              child: Text('“${r.motivoDetalle}”',
-                  style: const TextStyle(
-                      fontStyle: FontStyle.italic,
-                      fontSize: 13)),
+              child: Text(
+                '“${r.motivoDetalle}”',
+                style: const TextStyle(
+                  fontStyle: FontStyle.italic,
+                  fontSize: 13,
+                ),
+              ),
             ),
           const SizedBox(height: 8),
           Row(
@@ -250,16 +280,18 @@ class _ReturnDetailPageState extends State<ReturnDetailPage> {
                     ? 'Solicitado: ${dateFormat.format(r.fechaSolicitud!)}'
                     : '',
                 style: const TextStyle(
-                    fontSize: 11,
-                    color: AppColors.textMuted),
+                  fontSize: 11,
+                  color: AppColors.textMuted,
+                ),
               ),
               if (r.montoReembolso != null)
                 Text(
                   'Bs. ${r.montoReembolso!.toStringAsFixed(2)}',
                   style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.accent,
-                      fontSize: 16),
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.accent,
+                    fontSize: 16,
+                  ),
                 ),
             ],
           ),
@@ -280,8 +312,10 @@ class _ReturnDetailPageState extends State<ReturnDetailPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Seguimiento',
-              style: TextStyle(fontWeight: FontWeight.bold)),
+          const Text(
+            'Seguimiento',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 12),
           ...steps.asMap().entries.map((entry) {
             final i = entry.key;
@@ -290,8 +324,8 @@ class _ReturnDetailPageState extends State<ReturnDetailPage> {
             final color = s.isRejected
                 ? AppColors.error
                 : (s.done || s.isCurrent
-                    ? AppColors.success
-                    : AppColors.textMuted);
+                      ? AppColors.success
+                      : AppColors.textMuted);
             return Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -309,30 +343,29 @@ class _ReturnDetailPageState extends State<ReturnDetailPage> {
                       ),
                       child: (s.done || s.isCurrent)
                           ? Icon(
-                              s.isRejected
-                                  ? Icons.close
-                                  : Icons.check,
+                              s.isRejected ? Icons.close : Icons.check,
                               size: 14,
-                              color: Colors.white)
+                              color: Colors.white,
+                            )
                           : null,
                     ),
-                    if (!isLast)
-                      Container(
-                          width: 2, height: 18, color: color),
+                    if (!isLast) Container(width: 2, height: 18, color: color),
                   ],
                 ),
                 const SizedBox(width: 10),
                 Padding(
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 2),
-                  child: Text(s.label,
-                      style: TextStyle(
-                          fontWeight: s.isCurrent
-                              ? FontWeight.bold
-                              : FontWeight.normal,
-                          color: s.isCurrent
-                              ? AppColors.textPrimary
-                              : AppColors.textSecondary)),
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Text(
+                    s.label,
+                    style: TextStyle(
+                      fontWeight: s.isCurrent
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                      color: s.isCurrent
+                          ? AppColors.textPrimary
+                          : AppColors.textSecondary,
+                    ),
+                  ),
                 ),
               ],
             );
@@ -353,44 +386,52 @@ class _ReturnDetailPageState extends State<ReturnDetailPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Prendas (${r.items.length})',
-              style:
-                  const TextStyle(fontWeight: FontWeight.bold)),
+          Text(
+            'Prendas (${r.items.length})',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 8),
-          ...r.items.map((it) => Padding(
-                padding:
-                    const EdgeInsets.symmetric(vertical: 6),
-                child: Row(
-                  children: [
-                    const Icon(Icons.checkroom,
-                        color: AppColors.accent, size: 20),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment:
-                            CrossAxisAlignment.start,
-                        children: [
-                          Text('Ítem #${it.detalleOrdenId} • '
-                              'Cant. ${it.cantidad}'),
-                          if (it.varianteCambioId != null)
-                            Text(
-                              'Cambio a variante #${it.varianteCambioId}',
-                              style: const TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.accent),
+          ...r.items.map(
+            (it) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.checkroom,
+                    color: AppColors.accent,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Ítem #${it.detalleOrdenId} • '
+                          'Cant. ${it.cantidad}',
+                        ),
+                        if (it.varianteCambioId != null)
+                          Text(
+                            'Cambio a variante #${it.varianteCambioId}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.accent,
                             ),
-                        ],
-                      ),
+                          ),
+                      ],
                     ),
-                    Text(
-                      'Bs. ${(it.precioUnitario * it.cantidad).toStringAsFixed(2)}',
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13),
+                  ),
+                  Text(
+                    'Bs. ${(it.precioUnitario * it.cantidad).toStringAsFixed(2)}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
                     ),
-                  ],
-                ),
-              )),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -402,20 +443,19 @@ class _ReturnDetailPageState extends State<ReturnDetailPage> {
       decoration: BoxDecoration(
         color: AppColors.warning.withOpacity(0.08),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-            color: AppColors.warning.withOpacity(0.4)),
+        border: Border.all(color: AppColors.warning.withOpacity(0.4)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Row(
             children: [
-              Icon(Icons.info_outline,
-                  size: 18, color: AppColors.warning),
+              Icon(Icons.info_outline, size: 18, color: AppColors.warning),
               SizedBox(width: 6),
-              Text('Observaciones de la tienda',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold)),
+              Text(
+                'Observaciones de la tienda',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
             ],
           ),
           const SizedBox(height: 6),

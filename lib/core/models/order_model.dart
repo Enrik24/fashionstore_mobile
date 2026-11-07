@@ -11,6 +11,9 @@ class OrderItemModel {
   final String? talla;
   final String? color;
   final int productoId;
+  // [EXAMEN-2] C2.5 (§5.5): precio local vs servidor para RN-007/RN-014.
+  final double? precioUnitarioLocal;
+  final double? precioUnitarioServidor;
 
   OrderItemModel({
     required this.id,
@@ -23,6 +26,8 @@ class OrderItemModel {
     this.talla,
     this.color,
     this.productoId = 0,
+    this.precioUnitarioLocal,
+    this.precioUnitarioServidor,
   });
 
   factory OrderItemModel.fromJson(Map<String, dynamic> json) {
@@ -36,10 +41,17 @@ class OrderItemModel {
 
     if (json['variante'] != null && json['variante'] is Map) {
       final v = json['variante'] as Map<String, dynamic>;
-      t = t ?? (v['talla'] is Map
-          ? (v['talla']['valor']?.toString() ?? v['talla']['nombre']?.toString())
-          : v['talla_nombre']?.toString());
-      c = c ?? (v['color'] is Map ? v['color']['nombre']?.toString() : v['color_nombre']?.toString());
+      t =
+          t ??
+          (v['talla'] is Map
+              ? (v['talla']['valor']?.toString() ??
+                    v['talla']['nombre']?.toString())
+              : v['talla_nombre']?.toString());
+      c =
+          c ??
+          (v['color'] is Map
+              ? v['color']['nombre']?.toString()
+              : v['color_nombre']?.toString());
       if (v['producto'] != null && v['producto'] is Map) {
         prodName = v['producto']['nombre']?.toString() ?? prodName;
         if (prodId == 0) {
@@ -48,15 +60,15 @@ class OrderItemModel {
               ? rawPid
               : int.tryParse(rawPid?.toString() ?? '') ?? 0;
         }
-        if (v['producto']['imagenes'] is List && (v['producto']['imagenes'] as List).isNotEmpty) {
+        if (v['producto']['imagenes'] is List &&
+            (v['producto']['imagenes'] as List).isNotEmpty) {
           prodImg = prodImg ?? v['producto']['imagenes'][0]?.toString();
         }
       }
     }
 
     // El backend de órdenes serializa el detalle en 'variante_producto'.
-    if (json['variante_producto'] != null &&
-        json['variante_producto'] is Map) {
+    if (json['variante_producto'] != null && json['variante_producto'] is Map) {
       final v = json['variante_producto'] as Map<String, dynamic>;
       if (v['producto'] != null && v['producto'] is Map) {
         final p = v['producto'] as Map<String, dynamic>;
@@ -67,8 +79,7 @@ class OrderItemModel {
               ? rawPid
               : int.tryParse(rawPid?.toString() ?? '') ?? 0;
         }
-        if (p['imagenes'] is List &&
-            (p['imagenes'] as List).isNotEmpty) {
+        if (p['imagenes'] is List && (p['imagenes'] as List).isNotEmpty) {
           prodImg = prodImg ?? p['imagenes'][0]?.toString();
         }
       }
@@ -84,12 +95,14 @@ class OrderItemModel {
 
     final sub = json['subtotal'] != null
         ? ((json['subtotal'] is num)
-            ? (json['subtotal'] as num).toDouble()
-            : double.tryParse(json['subtotal'].toString()) ?? (unitPrice * q))
+              ? (json['subtotal'] as num).toDouble()
+              : double.tryParse(json['subtotal'].toString()) ?? (unitPrice * q))
         : (unitPrice * q);
 
     return OrderItemModel(
-      id: json['id'] is int ? json['id'] : int.tryParse(json['id'].toString()) ?? 0,
+      id: json['id'] is int
+          ? json['id']
+          : int.tryParse(json['id'].toString()) ?? 0,
       varianteProductoId: json['variante_producto_id'] is int
           ? json['variante_producto_id']
           : int.tryParse(json['variante_producto_id']?.toString() ?? '0') ?? 0,
@@ -101,6 +114,11 @@ class OrderItemModel {
       talla: t,
       color: c,
       productoId: prodId,
+      precioUnitarioLocal: (json['precio_unitario_local'] as num?)?.toDouble()
+          ?? (json['precioUnitarioLocal'] as num?)?.toDouble(),
+      precioUnitarioServidor:
+          (json['precio_unitario_servidor'] as num?)?.toDouble()
+          ?? (json['precioUnitarioServidor'] as num?)?.toDouble(),
     );
   }
 
@@ -116,11 +134,14 @@ class OrderItemModel {
       'talla': talla,
       'color': color,
       'producto_id': productoId,
+      'precio_unitario_local': precioUnitarioLocal,
+      'precio_unitario_servidor': precioUnitarioServidor,
     };
   }
 }
 
 class OrderModel {
+  // keep-2
   final int id;
   final String numeroOrden;
   final int clienteId;
@@ -140,6 +161,16 @@ class OrderModel {
   final List<OrderItemModel> items;
   final DateTime? createdAt;
   final ComprobanteModel? comprobante;
+// [EXAMEN-2] Trazabilidad de órdenes offline y pago diferido.
+  final String? uuidOrden;
+  final String? origen;
+  final String? moneda;
+  final DateTime? expiraEn;
+  final DateTime? fechaLimitePago;
+  // [EXAMEN-2] C2.5 (§5.5): límite para devolución/reposición (RN-012).
+  final DateTime? fechaCambioLimite;
+  final bool esOffline;
+  final String estadoSincronizacion;
 
   OrderModel({
     required this.id,
@@ -161,9 +192,18 @@ class OrderModel {
     this.items = const [],
     this.createdAt,
     this.comprobante,
+    this.uuidOrden,
+    this.origen,
+    this.moneda = 'BOB',
+    this.expiraEn,
+    this.fechaLimitePago,
+    this.fechaCambioLimite,
+    this.esOffline = false,
+    this.estadoSincronizacion = 'PENDIENTE',
   });
 
-  bool get isPaid => estado.toUpperCase() == 'PAGADO' || estado.toUpperCase() == 'COMPLETADO';
+  bool get isPaid =>
+      estado.toUpperCase() == 'PAGADO' || estado.toUpperCase() == 'COMPLETADO';
   // El backend usa PENDIENTE_PAGO (no PENDIENTE a secas).
   bool get isPending => estado.toUpperCase().startsWith('PENDIENTE');
   bool get isCancelled => estado.toUpperCase() == 'CANCELADO';
@@ -188,8 +228,8 @@ class OrderModel {
 
     final sub = json['subtotal'] != null
         ? ((json['subtotal'] is num)
-            ? (json['subtotal'] as num).toDouble()
-            : double.tryParse(json['subtotal'].toString()) ?? tot)
+              ? (json['subtotal'] as num).toDouble()
+              : double.tryParse(json['subtotal'].toString()) ?? tot)
         : tot;
 
     DateTime? parsedDate;
@@ -204,12 +244,15 @@ class OrderModel {
     if (json['comprobante'] is Map<String, dynamic>) {
       try {
         comprobante = ComprobanteModel.fromJson(
-            json['comprobante'] as Map<String, dynamic>);
+          json['comprobante'] as Map<String, dynamic>,
+        );
       } catch (_) {}
     }
 
     return OrderModel(
-      id: json['id'] is int ? json['id'] : int.tryParse(json['id'].toString()) ?? 0,
+      id: json['id'] is int
+          ? json['id']
+          : int.tryParse(json['id'].toString()) ?? 0,
       numeroOrden: json['numero_orden']?.toString() ?? 'ORD-${json['id']}',
       clienteId: json['cliente_id'] is int
           ? json['cliente_id']
@@ -218,18 +261,18 @@ class OrderModel {
       subtotal: sub,
       costoEnvio: json['costo_envio'] != null
           ? ((json['costo_envio'] is num)
-              ? (json['costo_envio'] as num).toDouble()
-              : double.tryParse(json['costo_envio'].toString()) ?? 0.0)
+                ? (json['costo_envio'] as num).toDouble()
+                : double.tryParse(json['costo_envio'].toString()) ?? 0.0)
           : 0.0,
       descuento: json['descuento'] != null
           ? ((json['descuento'] is num)
-              ? (json['descuento'] as num).toDouble()
-              : double.tryParse(json['descuento'].toString()) ?? 0.0)
+                ? (json['descuento'] as num).toDouble()
+                : double.tryParse(json['descuento'].toString()) ?? 0.0)
           : 0.0,
       impuestos: json['impuestos'] != null
           ? ((json['impuestos'] is num)
-              ? (json['impuestos'] as num).toDouble()
-              : double.tryParse(json['impuestos'].toString()) ?? 0.0)
+                ? (json['impuestos'] as num).toDouble()
+                : double.tryParse(json['impuestos'].toString()) ?? 0.0)
           : 0.0,
       estado: json['estado']?.toString() ?? 'PENDIENTE',
       sucursalId: json['sucursal_id'] is int
@@ -237,13 +280,31 @@ class OrderModel {
           : int.tryParse(json['sucursal_id']?.toString() ?? ''),
       sucursalNombre: sNombre,
       direccionEnvio: json['direccion_envio']?.toString(),
-      ciudadEnvio: json['ciudad_envio']?.toString() ?? json['ciudad']?.toString(),
-      telefonoContacto: json['telefono_contacto']?.toString() ?? json['telefono']?.toString(),
+      ciudadEnvio:
+          json['ciudad_envio']?.toString() ?? json['ciudad']?.toString(),
+      telefonoContacto:
+          json['telefono_contacto']?.toString() ?? json['telefono']?.toString(),
       metodoPago: json['metodo_pago']?.toString(),
       referenciaPago: json['referencia_pago']?.toString(),
       items: itemList,
       createdAt: parsedDate ?? DateTime.now(),
       comprobante: comprobante,
+      uuidOrden: json['uuid_orden']?.toString(),
+      origen: json['origen']?.toString(),
+      moneda: json['moneda']?.toString() ?? 'BOB',
+      expiraEn: DateTime.tryParse(json['expira_en']?.toString() ?? ''),
+      fechaLimitePago: DateTime.tryParse(
+        json['fecha_limite_pago']?.toString() ?? '',
+      ),
+      // [EXAMEN-2] C2.5 (§5.5): límite para devolución/reposición (RN-012).
+      fechaCambioLimite: DateTime.tryParse(
+        (json['fecha_cambio_limite'] ?? json['fechaCambioLimite'])
+                ?.toString() ??
+            '',
+      ),
+      esOffline: json['es_offline'] == true,
+      estadoSincronizacion:
+          json['estado_sincronizacion']?.toString() ?? 'PENDIENTE',
     );
   }
 
@@ -266,6 +327,15 @@ class OrderModel {
       'referencia_pago': referenciaPago,
       'items': items.map((i) => i.toJson()).toList(),
       'comprobante': comprobante?.toJson(),
+      'uuid_orden': uuidOrden,
+      'origen': origen,
+      'moneda': moneda,
+      'expira_en': expiraEn?.toUtc().toIso8601String(),
+      'fecha_limite_pago': fechaLimitePago?.toUtc().toIso8601String(),
+      // [EXAMEN-2] C2.5 (§5.5): límite para devolución/reposición (RN-012).
+      'fecha_cambio_limite': fechaCambioLimite?.toUtc().toIso8601String(),
+      'es_offline': esOffline,
+      'estado_sincronizacion': estadoSincronizacion,
     };
   }
 }
@@ -283,7 +353,8 @@ class StripeSessionResponse {
 
   factory StripeSessionResponse.fromJson(Map<String, dynamic> json) {
     return StripeSessionResponse(
-      checkoutUrl: json['checkout_url']?.toString() ?? json['url']?.toString() ?? '',
+      checkoutUrl:
+          json['checkout_url']?.toString() ?? json['url']?.toString() ?? '',
       sessionId: json['session_id']?.toString() ?? json['id']?.toString() ?? '',
       ordenId: json['orden_id'] is int
           ? json['orden_id']
@@ -311,4 +382,3 @@ class PayPalOrderResponse {
     );
   }
 }
-

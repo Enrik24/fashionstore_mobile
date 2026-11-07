@@ -12,10 +12,7 @@ import '../../../core/providers/promotions_provider.dart';
 class ProductCard extends StatelessWidget {
   final ProductModel product;
 
-  const ProductCard({
-    super.key,
-    required this.product,
-  });
+  const ProductCard({super.key, required this.product});
 
   void _onFavoriteTap(BuildContext context, bool isFav) async {
     final auth = context.read<AuthProvider>();
@@ -131,9 +128,13 @@ class ProductCard extends StatelessWidget {
                     child: Consumer<PromotionsProvider>(
                       builder: (context, promos, _) {
                         final descuento = promos.getDiscountForProduct(
-                            product.id, product.categoriaId);
+                          product.id,
+                          product.categoriaId,
+                        );
                         final es2x1 = promos.has2x1(
-                            product.id, product.categoriaId);
+                          product.id,
+                          product.categoriaId,
+                        );
                         return Row(
                           children: [
                             // Badge de promoción activa (espejo de la web)
@@ -194,48 +195,48 @@ class ProductCard extends StatelessWidget {
                                   ),
                                 ),
                               ),
-                        if (product.estado == 'AGOTADO')
-                          Container(
-                            margin: const EdgeInsets.only(left: 4),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.75),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Text(
-                              'AGOTADO',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
+                            if (product.estado == 'AGOTADO')
+                              Container(
+                                margin: const EdgeInsets.only(left: 4),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.75),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Text(
+                                  'AGOTADO',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              )
+                            else if (product.estado == 'PROXIMO_INGRESO')
+                              Container(
+                                margin: const EdgeInsets.only(left: 4),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.orange.withOpacity(0.85),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Text(
+                                  'PRÓXIMAMENTE',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
-                            ),
-                          )
-                        else if (product.estado == 'PROXIMO_INGRESO')
-                          Container(
-                            margin: const EdgeInsets.only(left: 4),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.orange.withOpacity(0.85),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Text(
-                              'PRÓXIMAMENTE',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                      ],
-                    );
+                          ],
+                        );
                       },
                     ),
                   ),
@@ -256,9 +257,7 @@ class ProductCard extends StatelessWidget {
                             child: Padding(
                               padding: const EdgeInsets.all(7),
                               child: Icon(
-                                isFav
-                                    ? Icons.favorite
-                                    : Icons.favorite_border,
+                                isFav ? Icons.favorite : Icons.favorite_border,
                                 size: 20,
                                 color: isFav
                                     ? AppColors.accent
@@ -286,10 +285,10 @@ class ProductCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.accent,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.5,
-                          ),
+                        color: AppColors.accent,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
                     ),
                   const SizedBox(height: 2),
                   // Title
@@ -298,16 +297,15 @@ class ProductCard extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontSize: 14,
-                          height: 1.2,
-                        ),
+                      fontSize: 14,
+                      height: 1.2,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   // Valoración compacta (CU26): promedio real del backend.
                   Row(
                     children: [
-                      const Icon(Icons.star,
-                          size: 14, color: Colors.amber),
+                      const Icon(Icons.star, size: 14, color: Colors.amber),
                       const SizedBox(width: 2),
                       Flexible(
                         child: Text(
@@ -316,9 +314,7 @@ class ProductCard extends StatelessWidget {
                               : 'Sin valoraciones',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
+                          style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
                                 color: AppColors.textMuted,
                                 fontSize: 11,
@@ -332,23 +328,22 @@ class ProductCard extends StatelessWidget {
                   Consumer<PromotionsProvider>(
                     builder: (context, promos, _) {
                       final descuento = promos.getDiscountForProduct(
-                          product.id, product.categoriaId);
+                        product.id,
+                        product.categoriaId,
+                      );
                       final precioPromo = descuento != null
                           ? product.precio * (1 - descuento / 100)
                           : null;
-                      final showPromoPrice = precioPromo != null &&
-                          !product.hasDiscount;
+                      final showPromoPrice =
+                          precioPromo != null && !product.hasDiscount;
                       final mainPrice = showPromoPrice
                           ? precioPromo
                           : product.displayPrice;
                       final strikedPrice = showPromoPrice
                           ? product.precio
-                          : (product.hasDiscount
-                              ? product.precio
-                              : null);
+                          : (product.hasDiscount ? product.precio : null);
                       return Row(
-                        crossAxisAlignment:
-                            CrossAxisAlignment.baseline,
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
                         textBaseline: TextBaseline.alphabetic,
                         children: [
                           Flexible(
@@ -356,12 +351,10 @@ class ProductCard extends StatelessWidget {
                               currencyFormatter.format(mainPrice),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleMedium
+                              style: Theme.of(context).textTheme.titleMedium
                                   ?.copyWith(
-                                    color: (showPromoPrice ||
-                                            product.hasDiscount)
+                                    color:
+                                        (showPromoPrice || product.hasDiscount)
                                         ? AppColors.success
                                         : AppColors.primary,
                                     fontWeight: FontWeight.bold,
@@ -376,12 +369,9 @@ class ProductCard extends StatelessWidget {
                                 currencyFormatter.format(strikedPrice),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
+                                style: Theme.of(context).textTheme.bodySmall
                                     ?.copyWith(
-                                      decoration:
-                                          TextDecoration.lineThrough,
+                                      decoration: TextDecoration.lineThrough,
                                       color: AppColors.textMuted,
                                       fontSize: 11,
                                     ),

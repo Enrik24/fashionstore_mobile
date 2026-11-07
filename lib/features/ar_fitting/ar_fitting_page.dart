@@ -15,10 +15,7 @@ import '../../core/widgets/custom_app_bar.dart';
 class ArFittingPage extends StatefulWidget {
   final int? initialProductId;
 
-  const ArFittingPage({
-    super.key,
-    this.initialProductId,
-  });
+  const ArFittingPage({super.key, this.initialProductId});
 
   @override
   State<ArFittingPage> createState() => _ArFittingPageState();
@@ -68,7 +65,10 @@ class _ArFittingPageState extends State<ArFittingPage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al seleccionar imagen: $e'), backgroundColor: AppColors.error),
+          SnackBar(
+            content: Text('Error al seleccionar imagen: $e'),
+            backgroundColor: AppColors.error,
+          ),
         );
       }
     }
@@ -98,7 +98,10 @@ class _ArFittingPageState extends State<ArFittingPage> {
               Text(
                 'Toma una foto de cuerpo entero o selecciona una imagen de tu galería para la simulación de ajuste.',
                 textAlign: TextAlign.center,
-                style: GoogleFonts.inter(fontSize: 12, color: AppColors.textLight),
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  color: AppColors.textLight,
+                ),
               ),
               const SizedBox(height: 20),
               ListTile(
@@ -108,9 +111,15 @@ class _ArFittingPageState extends State<ArFittingPage> {
                     color: AppColors.primary.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.camera_alt_outlined, color: AppColors.primary),
+                  child: const Icon(
+                    Icons.camera_alt_outlined,
+                    color: AppColors.primary,
+                  ),
                 ),
-                title: Text('Tomar Foto con Cámara', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+                title: Text(
+                  'Tomar Foto con Cámara',
+                  style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                ),
                 onTap: () {
                   Navigator.pop(ctx);
                   _pickImage(ImageSource.camera);
@@ -123,9 +132,15 @@ class _ArFittingPageState extends State<ArFittingPage> {
                     color: AppColors.accent.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.photo_library_outlined, color: AppColors.accent),
+                  child: const Icon(
+                    Icons.photo_library_outlined,
+                    color: AppColors.accent,
+                  ),
                 ),
-                title: Text('Elegir de la Galería', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+                title: Text(
+                  'Elegir de la Galería',
+                  style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                ),
                 onTap: () {
                   Navigator.pop(ctx);
                   _pickImage(ImageSource.gallery);
@@ -203,17 +218,26 @@ class _ArFittingPageState extends State<ArFittingPage> {
                                   child: CachedNetworkImage(
                                     imageUrl: p.primaryImage,
                                     fit: BoxFit.cover,
-                                    errorWidget: (_, __, ___) => const Icon(Icons.checkroom),
+                                    errorWidget: (_, __, ___) =>
+                                        const Icon(Icons.checkroom),
                                   ),
                                 ),
                               ),
-                              title: Text(p.nombre, style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+                              title: Text(
+                                p.nombre,
+                                style: GoogleFonts.inter(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                               subtitle: Text(
                                 'Bs. ${p.precio.toStringAsFixed(2)} • ${p.categoriaNombre ?? ''}',
                                 style: GoogleFonts.inter(fontSize: 12),
                               ),
                               trailing: isSelected
-                                  ? const Icon(Icons.check_circle, color: AppColors.accent)
+                                  ? const Icon(
+                                      Icons.check_circle,
+                                      color: AppColors.accent,
+                                    )
                                   : null,
                               onTap: () {
                                 setState(() => _selectedProduct = p);
@@ -306,7 +330,11 @@ class _ArFittingPageState extends State<ArFittingPage> {
               color: Colors.white,
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.auto_awesome, color: AppColors.accent, size: 24),
+            child: const Icon(
+              Icons.auto_awesome,
+              color: AppColors.accent,
+              size: 24,
+            ),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -324,7 +352,10 @@ class _ArFittingPageState extends State<ArFittingPage> {
                 const SizedBox(height: 4),
                 Text(
                   'Sube una foto tuya y elige una prenda de nuestra colección para analizar el entalle, corte y compatibilidad.',
-                  style: GoogleFonts.inter(fontSize: 12, color: AppColors.textSecondary),
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ],
             ),
@@ -365,8 +396,15 @@ class _ArFittingPageState extends State<ArFittingPage> {
               if (ai.selectedImage != null)
                 TextButton.icon(
                   onPressed: () => ai.setSelectedImage(null),
-                  icon: const Icon(Icons.close, size: 16, color: AppColors.error),
-                  label: const Text('Quitar', style: TextStyle(color: AppColors.error, fontSize: 12)),
+                  icon: const Icon(
+                    Icons.close,
+                    size: 16,
+                    color: AppColors.error,
+                  ),
+                  label: const Text(
+                    'Quitar',
+                    style: TextStyle(color: AppColors.error, fontSize: 12),
+                  ),
                 ),
             ],
           ),
@@ -396,7 +434,11 @@ class _ArFittingPageState extends State<ArFittingPage> {
                         color: AppColors.accent.withOpacity(0.1),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.add_a_photo_outlined, color: AppColors.accent, size: 28),
+                      child: const Icon(
+                        Icons.add_a_photo_outlined,
+                        color: AppColors.accent,
+                        size: 28,
+                      ),
                     ),
                     const SizedBox(height: 10),
                     Text(
@@ -410,7 +452,10 @@ class _ArFittingPageState extends State<ArFittingPage> {
                     const SizedBox(height: 4),
                     Text(
                       '(Opcional: si no subes foto, se usará un maniquí virtual)',
-                      style: GoogleFonts.inter(fontSize: 11, color: AppColors.textLight),
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        color: AppColors.textLight,
+                      ),
                     ),
                   ],
                 ),
@@ -425,10 +470,7 @@ class _ArFittingPageState extends State<ArFittingPage> {
                   child: SizedBox(
                     height: 200,
                     width: double.infinity,
-                    child: Image.file(
-                      ai.selectedImage!,
-                      fit: BoxFit.cover,
-                    ),
+                    child: Image.file(ai.selectedImage!, fit: BoxFit.cover),
                   ),
                 ),
                 Padding(
@@ -436,7 +478,11 @@ class _ArFittingPageState extends State<ArFittingPage> {
                   child: CircleAvatar(
                     backgroundColor: Colors.white,
                     child: IconButton(
-                      icon: const Icon(Icons.edit, size: 18, color: AppColors.primary),
+                      icon: const Icon(
+                        Icons.edit,
+                        size: 18,
+                        color: AppColors.primary,
+                      ),
                       onPressed: _showImageSourceModal,
                     ),
                   ),
@@ -487,15 +533,25 @@ class _ArFittingPageState extends State<ArFittingPage> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.checkroom_outlined, color: AppColors.primary),
+                    const Icon(
+                      Icons.checkroom_outlined,
+                      color: AppColors.primary,
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         'Seleccionar una prenda del catálogo...',
-                        style: GoogleFonts.inter(fontSize: 13, color: AppColors.textLight),
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          color: AppColors.textLight,
+                        ),
                       ),
                     ),
-                    const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.textLight),
+                    const Icon(
+                      Icons.arrow_forward_ios,
+                      size: 14,
+                      color: AppColors.textLight,
+                    ),
                   ],
                 ),
               ),
@@ -518,7 +574,8 @@ class _ArFittingPageState extends State<ArFittingPage> {
                       child: CachedNetworkImage(
                         imageUrl: _selectedProduct!.primaryImage,
                         fit: BoxFit.cover,
-                        errorWidget: (_, __, ___) => const Icon(Icons.checkroom),
+                        errorWidget: (_, __, ___) =>
+                            const Icon(Icons.checkroom),
                       ),
                     ),
                   ),
@@ -529,7 +586,10 @@ class _ArFittingPageState extends State<ArFittingPage> {
                       children: [
                         Text(
                           _selectedProduct!.nombre,
-                          style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13),
+                          style: GoogleFonts.inter(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
                         ),
                         const SizedBox(height: 2),
                         Text(
@@ -563,7 +623,9 @@ class _ArFittingPageState extends State<ArFittingPage> {
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           elevation: 4,
         ),
         onPressed: ai.isFittingLoading ? null : _handleSimulateFitting,
@@ -584,7 +646,10 @@ class _ArFittingPageState extends State<ArFittingPage> {
           const SizedBox(height: 16),
           Text(
             'Procesando simulación virtual con IA...',
-            style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: AppColors.primary),
+            style: GoogleFonts.inter(
+              fontWeight: FontWeight.w600,
+              color: AppColors.primary,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
@@ -623,7 +688,11 @@ class _ArFittingPageState extends State<ArFittingPage> {
                   color: AppColors.success.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.check_circle_outline, color: AppColors.success, size: 20),
+                child: const Icon(
+                  Icons.check_circle_outline,
+                  color: AppColors.success,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -652,12 +721,18 @@ class _ArFittingPageState extends State<ArFittingPage> {
                   fit: BoxFit.cover,
                   placeholder: (_, __) => Container(
                     color: Colors.grey.shade100,
-                    child: const Center(child: CircularProgressIndicator(color: AppColors.accent)),
+                    child: const Center(
+                      child: CircularProgressIndicator(color: AppColors.accent),
+                    ),
                   ),
                   errorWidget: (_, __, ___) => Container(
                     color: AppColors.background,
                     child: const Center(
-                      child: Icon(Icons.checkroom, color: AppColors.accent, size: 48),
+                      child: Icon(
+                        Icons.checkroom,
+                        color: AppColors.accent,
+                        size: 48,
+                      ),
                     ),
                   ),
                 ),
@@ -668,39 +743,63 @@ class _ArFittingPageState extends State<ArFittingPage> {
 
           Text(
             res.productoNombre,
-            style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textDark),
+            style: GoogleFonts.inter(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textDark,
+            ),
           ),
           const SizedBox(height: 6),
           Text(
             res.mensaje,
-            style: GoogleFonts.inter(fontSize: 13, height: 1.4, color: AppColors.textSecondary),
+            style: GoogleFonts.inter(
+              fontSize: 13,
+              height: 1.4,
+              color: AppColors.textSecondary,
+            ),
           ),
 
           if (res.detallesAjuste != null && res.detallesAjuste!.isNotEmpty) ...[
             const Divider(height: 28),
             Text(
               'Detalles del Ajuste:',
-              style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.primary),
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: AppColors.primary,
+              ),
             ),
             const SizedBox(height: 8),
-            ...res.detallesAjuste!.entries.map((entry) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 3),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.arrow_right, size: 18, color: AppColors.accent),
-                      Text(
-                        '${entry.key}: ',
-                        style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600),
+            ...res.detallesAjuste!.entries.map(
+              (entry) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 3),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.arrow_right,
+                      size: 18,
+                      color: AppColors.accent,
+                    ),
+                    Text(
+                      '${entry.key}: ',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
                       ),
-                      Expanded(
-                        child: Text(
-                          '${entry.value}',
-                          style: GoogleFonts.inter(fontSize: 12, color: AppColors.textDark),
+                    ),
+                    Expanded(
+                      child: Text(
+                        '${entry.value}',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: AppColors.textDark,
                         ),
                       ),
-                    ],
-                  ),
-                )),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ],
 
           const SizedBox(height: 20),
@@ -710,13 +809,20 @@ class _ArFittingPageState extends State<ArFittingPage> {
                 child: OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   onPressed: () {
-                    context.push('/reservations/create?productId=${res.productoId}');
+                    context.push(
+                      '/reservations/create?productId=${res.productoId}',
+                    );
                   },
                   icon: const Icon(Icons.event_seat_outlined, size: 16),
-                  label: const Text('Apartar en Tienda', style: TextStyle(fontSize: 12)),
+                  label: const Text(
+                    'Apartar en Tienda',
+                    style: TextStyle(fontSize: 12),
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -726,13 +832,18 @@ class _ArFittingPageState extends State<ArFittingPage> {
                     backgroundColor: AppColors.accent,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   onPressed: () {
                     context.push('/catalog/${res.productoId}');
                   },
                   icon: const Icon(Icons.shopping_bag_outlined, size: 16),
-                  label: const Text('Ver Prenda', style: TextStyle(fontSize: 12)),
+                  label: const Text(
+                    'Ver Prenda',
+                    style: TextStyle(fontSize: 12),
+                  ),
                 ),
               ),
             ],

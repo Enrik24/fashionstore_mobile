@@ -75,15 +75,15 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
               ],
             )
           : (title != null
-              ? Text(
-                  title!,
-                  style: GoogleFonts.playfairDisplay(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primary,
-                  ),
-                )
-              : null),
+                ? Text(
+                    title!,
+                    style: GoogleFonts.playfairDisplay(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
+                    ),
+                  )
+                : null),
       actions: [
         if (actions != null) ...actions!,
         if (showAvatar && user != null)

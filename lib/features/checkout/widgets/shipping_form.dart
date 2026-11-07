@@ -9,10 +9,7 @@ import '../../../core/providers/reservation_provider.dart';
 class ShippingFormWidget extends StatefulWidget {
   final GlobalKey<FormState> formKey;
 
-  const ShippingFormWidget({
-    super.key,
-    required this.formKey,
-  });
+  const ShippingFormWidget({super.key, required this.formKey});
 
   @override
   State<ShippingFormWidget> createState() => _ShippingFormWidgetState();
@@ -20,7 +17,9 @@ class ShippingFormWidget extends StatefulWidget {
 
 class _ShippingFormWidgetState extends State<ShippingFormWidget> {
   final TextEditingController _addressController = TextEditingController();
-  final TextEditingController _cityController = TextEditingController(text: 'Santa Cruz');
+  final TextEditingController _cityController = TextEditingController(
+    text: 'Santa Cruz',
+  );
   final TextEditingController _phoneController = TextEditingController();
 
   @override
@@ -33,16 +32,19 @@ class _ShippingFormWidgetState extends State<ShippingFormWidget> {
 
       if (reservation.branches.isEmpty) {
         reservation.loadBranches();
-      } else if (checkout.selectedBranch == null && reservation.branches.isNotEmpty) {
+      } else if (checkout.selectedBranch == null &&
+          reservation.branches.isNotEmpty) {
         checkout.setSelectedBranch(reservation.branches.first);
       }
 
       if (auth.clienteProfile != null) {
-        if (auth.clienteProfile!.direccionEnvio != null && auth.clienteProfile!.direccionEnvio!.isNotEmpty) {
+        if (auth.clienteProfile!.direccionEnvio != null &&
+            auth.clienteProfile!.direccionEnvio!.isNotEmpty) {
           _addressController.text = auth.clienteProfile!.direccionEnvio!;
           checkout.setShippingAddress(auth.clienteProfile!.direccionEnvio!);
         }
-        if (auth.clienteProfile!.telefono != null && auth.clienteProfile!.telefono!.isNotEmpty) {
+        if (auth.clienteProfile!.telefono != null &&
+            auth.clienteProfile!.telefono!.isNotEmpty) {
           _phoneController.text = auth.clienteProfile!.telefono!;
           checkout.setPhoneNumber(auth.clienteProfile!.telefono!);
         }
@@ -77,13 +79,17 @@ class _ShippingFormWidgetState extends State<ShippingFormWidget> {
           children: [
             Row(
               children: [
-                const Icon(Icons.local_shipping_outlined, color: AppColors.accent, size: 22),
+                const Icon(
+                  Icons.local_shipping_outlined,
+                  color: AppColors.accent,
+                  size: 22,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   'Método de Entrega',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
@@ -110,7 +116,8 @@ class _ShippingFormWidgetState extends State<ShippingFormWidget> {
                     isSelected: checkout.deliveryType == 'PICKUP',
                     onTap: () {
                       checkout.setDeliveryType('PICKUP');
-                      if (checkout.selectedBranch == null && reservation.branches.isNotEmpty) {
+                      if (checkout.selectedBranch == null &&
+                          reservation.branches.isNotEmpty) {
                         checkout.setSelectedBranch(reservation.branches.first);
                       }
                     },
@@ -129,7 +136,8 @@ class _ShippingFormWidgetState extends State<ShippingFormWidget> {
                   prefixIcon: Icon(Icons.home_outlined),
                 ),
                 validator: (val) {
-                  if (checkout.deliveryType == 'SHIPPING' && (val == null || val.trim().isEmpty)) {
+                  if (checkout.deliveryType == 'SHIPPING' &&
+                      (val == null || val.trim().isEmpty)) {
                     return 'Por favor ingresa la dirección de entrega';
                   }
                   return null;
@@ -184,7 +192,11 @@ class _ShippingFormWidgetState extends State<ShippingFormWidget> {
                 )
               else
                 DropdownButtonFormField<BranchModel>(
-                  value: checkout.selectedBranch ?? (reservation.branches.isNotEmpty ? reservation.branches.first : null),
+                  value:
+                      checkout.selectedBranch ??
+                      (reservation.branches.isNotEmpty
+                          ? reservation.branches.first
+                          : null),
                   decoration: const InputDecoration(
                     prefixIcon: Icon(Icons.storefront_outlined),
                     labelText: 'Sucursal de Retiro *',
@@ -251,7 +263,9 @@ class _ShippingFormWidgetState extends State<ShippingFormWidget> {
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 12,
-                        color: isSelected ? AppColors.accent : AppColors.textPrimary,
+                        color: isSelected
+                            ? AppColors.accent
+                            : AppColors.textPrimary,
                       ),
                     ),
                     Text(

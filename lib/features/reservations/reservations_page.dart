@@ -41,7 +41,9 @@ class _ReservationsPageState extends State<ReservationsPage>
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Cancelar Reserva'),
-        content: Text('¿Estás seguro de que deseas cancelar la reserva ${res.numeroReserva}?'),
+        content: Text(
+          '¿Estás seguro de que deseas cancelar la reserva ${res.numeroReserva}?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -52,7 +54,10 @@ class _ReservationsPageState extends State<ReservationsPage>
               Navigator.pop(context);
               context.read<ReservationProvider>().cancelReservation(res.id);
             },
-            child: const Text('Sí, Cancelar', style: TextStyle(color: AppColors.error)),
+            child: const Text(
+              'Sí, Cancelar',
+              style: TextStyle(color: AppColors.error),
+            ),
           ),
         ],
       ),
@@ -72,11 +77,17 @@ class _ReservationsPageState extends State<ReservationsPage>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.calendar_today_outlined, size: 72, color: AppColors.textMuted),
+                const Icon(
+                  Icons.calendar_today_outlined,
+                  size: 72,
+                  color: AppColors.textMuted,
+                ),
                 const SizedBox(height: 16),
                 Text(
                   'Inicia sesión para ver tus reservas',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
@@ -130,11 +141,17 @@ class _ReservationsPageState extends State<ReservationsPage>
               children: [
                 _buildList(provider.reservations, provider),
                 _buildList(
-                  provider.reservations.where((r) => r.isPending || r.isConfirmed).toList(),
+                  provider.reservations
+                      .where((r) => r.isPending || r.isConfirmed)
+                      .toList(),
                   provider,
                 ),
                 _buildList(
-                  provider.reservations.where((r) => r.isCompleted || r.isCancelled || r.isExpired).toList(),
+                  provider.reservations
+                      .where(
+                        (r) => r.isCompleted || r.isCancelled || r.isExpired,
+                      )
+                      .toList(),
                   provider,
                 ),
               ],
@@ -168,9 +185,9 @@ class _ReservationsPageState extends State<ReservationsPage>
               const SizedBox(height: 20),
               Text(
                 'No tienes reservas en esta sección',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
@@ -184,9 +201,15 @@ class _ReservationsPageState extends State<ReservationsPage>
                 onPressed: () => context.go('/catalog'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
                 ),
-                child: const Text('Explorar Catálogo', style: TextStyle(color: Colors.white)),
+                child: const Text(
+                  'Explorar Catálogo',
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
             ],
           ),

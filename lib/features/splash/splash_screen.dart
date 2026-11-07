@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../config/theme.dart';
 import '../../core/providers/auth_provider.dart';
+import '../../core/providers/connectivity_provider.dart';
+import '../../core/providers/offline_session_provider.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -12,7 +14,8 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
   late AnimationController _animController;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
@@ -25,9 +28,10 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
       duration: const Duration(milliseconds: 1200),
     );
 
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animController, curve: Curves.easeIn),
-    );
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _animController, curve: Curves.easeIn));
 
     _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
       CurvedAnimation(parent: _animController, curve: Curves.easeOutBack),
@@ -43,12 +47,22 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     if (!mounted) return;
 
     final auth = context.read<AuthProvider>();
+    final connectivity = context.read<ConnectivityProvider>();
+    final offline = context.read<OfflineSessionProvider>();
+    await connectivity.refrescar();
     await auth.checkAuthStatus();
 
     if (!mounted) return;
 
     if (auth.isAuthenticated) {
       context.go('/home');
+    } else if (!connectivity.estaEnLinea && offline.pinConfigurado) {
+      // [EXAMEN-2] C1.2: vencida => solo consulta, no acceso operativo.
+      if (offline.sesionVencida) {
+        context.go('/home');
+      } else {
+        context.go('/offline/access');
+      }
     } else {
       context.go('/login');
     }

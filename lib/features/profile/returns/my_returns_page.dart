@@ -39,6 +39,13 @@ class _MyReturnsPageState extends State<MyReturnsPage> {
         return AppColors.error;
       case EstadosDevolucion.pendienteReembolso:
         return Colors.deepOrange;
+      // [EXAMEN-2] Fase 3 (CU13/CU18): estados offline y de reposición.
+      case EstadosFase3.errorVentaInvalida:
+        return Colors.red.shade900;
+      case EstadosFase3.sinAlternativa:
+        return Colors.purple;
+      case EstadosFase3.pendienteSincronizacion:
+        return Colors.orange.shade800;
       default:
         return AppColors.textSecondary;
     }
@@ -50,33 +57,34 @@ class _MyReturnsPageState extends State<MyReturnsPage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: const CustomAppBar(
-          title: 'Mis Devoluciones', showBackButton: true),
+        title: 'Mis Devoluciones',
+        showBackButton: true,
+      ),
       body: Consumer<ReturnProvider>(
         builder: (context, provider, _) {
           if (provider.isLoading && provider.requests.isEmpty) {
             return const Center(
-              child:
-                  CircularProgressIndicator(color: AppColors.accent),
+              child: CircularProgressIndicator(color: AppColors.accent),
             );
           }
 
-          if (provider.errorMessage != null &&
-              provider.requests.isEmpty) {
+          if (provider.errorMessage != null && provider.requests.isEmpty) {
             return Center(
               child: Padding(
                 padding: const EdgeInsets.all(32),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.error_outline,
-                        size: 56, color: AppColors.error),
+                    const Icon(
+                      Icons.error_outline,
+                      size: 56,
+                      color: AppColors.error,
+                    ),
                     const SizedBox(height: 12),
-                    Text(provider.errorMessage!,
-                        textAlign: TextAlign.center),
+                    Text(provider.errorMessage!, textAlign: TextAlign.center),
                     const SizedBox(height: 16),
                     ElevatedButton(
-                      onPressed: () =>
-                          provider.loadMyRequests(refresh: true),
+                      onPressed: () => provider.loadMyRequests(refresh: true),
                       child: const Text('Reintentar'),
                     ),
                   ],
@@ -99,16 +107,18 @@ class _MyReturnsPageState extends State<MyReturnsPage> {
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
-                          Icons.assignment_return_outlined,
-                          size: 56,
-                          color: AppColors.textMuted),
+                        Icons.assignment_return_outlined,
+                        size: 56,
+                        color: AppColors.textMuted,
+                      ),
                     ),
                     const SizedBox(height: 20),
-                    Text('Sin solicitudes',
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleLarge
-                            ?.copyWith(fontWeight: FontWeight.bold)),
+                    Text(
+                      'Sin solicitudes',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     const Text(
                       'Aquí verás el seguimiento de tus devoluciones y cambios.',
@@ -116,12 +126,15 @@ class _MyReturnsPageState extends State<MyReturnsPage> {
                     ),
                     const SizedBox(height: 24),
                     ElevatedButton.icon(
-                      onPressed: () =>
-                          context.push('/profile/orders'),
-                      icon: const Icon(Icons.receipt_long_outlined,
-                          color: Colors.white),
-                      label: const Text('Ver mis compras',
-                          style: TextStyle(color: Colors.white)),
+                      onPressed: () => context.push('/profile/orders'),
+                      icon: const Icon(
+                        Icons.receipt_long_outlined,
+                        color: Colors.white,
+                      ),
+                      label: const Text(
+                        'Ver mis compras',
+                        style: TextStyle(color: Colors.white),
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.accent,
                       ),
@@ -134,87 +147,135 @@ class _MyReturnsPageState extends State<MyReturnsPage> {
 
           return RefreshIndicator(
             color: AppColors.accent,
-            onRefresh: () =>
-                provider.loadMyRequests(refresh: true),
+            onRefresh: () => provider.loadMyRequests(refresh: true),
             child: ListView.separated(
               padding: const EdgeInsets.all(16),
               itemCount: provider.requests.length,
-              separatorBuilder: (_, __) =>
-                  const SizedBox(height: 12),
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemBuilder: (context, i) {
                 final r = provider.requests[i];
                 final color = _statusColor(r.estado);
                 return InkWell(
-                  onTap: () =>
-                      context.push('/profile/returns/${r.id}'),
+                  onTap: () => context.push('/profile/returns/${r.id}'),
                   borderRadius: BorderRadius.circular(16),
                   child: Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: AppColors.surface,
                       borderRadius: BorderRadius.circular(16),
-                      border:
-                          Border.all(color: AppColors.border),
+                      border: Border.all(color: AppColors.border),
                     ),
                     child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
                             Expanded(
-                              child: Text(r.numeroSolicitud,
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold)),
+                              child: Text(
+                                r.numeroSolicitud,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
                             Container(
-                              padding:
-                                  const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
                                 color: color.withOpacity(0.12),
-                                borderRadius:
-                                    BorderRadius.circular(10),
+                                borderRadius: BorderRadius.circular(10),
                                 border: Border.all(
-                                    color: color.withOpacity(0.4)),
+                                  color: color.withOpacity(0.4),
+                                ),
                               ),
                               child: Text(
                                 EstadosDevolucion.label(r.estado),
                                 style: TextStyle(
-                                    color: color,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold),
+                                  color: color,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 6),
                         Text(
+                          // [EXAMEN-2] Fase 3 (CU13/CU18): etiqueta de tipo con
+                          // DEVOLUCION/REPOSICION (CAMBIO es alias legacy).
+                          r.isReposicion
+                              ? 'Reposición'
+                              : r.isCambio
+                              ? 'Cambio'
+                              : 'Devolución',
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
                           '${r.isCambio ? 'Cambio' : 'Devolución'} • ${MotivosDevolucion.label(r.motivo)}',
                           style: const TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 12),
+                            color: AppColors.textSecondary,
+                            fontSize: 12,
+                          ),
                         ),
+                        // [EXAMEN-2] Fase 3: plazo, diferencia y estado de sync.
+                        if (r.fechaCambioLimite != null)
+                          Text(
+                            'Cambio posible hasta ${dateFormat.format(r.fechaCambioLimite!)}',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
+                        if (r.diferenciaPrecio != null)
+                          Text(
+                            'Diferencia: Bs. ${r.diferenciaPrecio!.toStringAsFixed(2)} '
+                            '(${r.clasificacionDiferencia})',
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                        if (r.numeroReposicion != null)
+                          Text(
+                            'Número de reposición: ${r.numeroReposicion}',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        if (r.esOffline)
+                          Text(
+                            'Offline • ${r.estadoSincronizacion ?? 'PENDIENTE_SINCRONIZACION'}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: r.esOffline
+                                  ? Colors.orange.shade800
+                                  : AppColors.textMuted,
+                            ),
+                          ),
                         const SizedBox(height: 4),
                         Row(
                           children: [
                             Text(
                               r.fechaSolicitud != null
-                                  ? dateFormat.format(
-                                      r.fechaSolicitud!)
+                                  ? dateFormat.format(r.fechaSolicitud!)
                                   : '',
                               style: const TextStyle(
-                                  fontSize: 11,
-                                  color: AppColors.textMuted),
+                                fontSize: 11,
+                                color: AppColors.textMuted,
+                              ),
                             ),
                             const Spacer(),
                             if (r.montoReembolso != null)
                               Text(
                                 'Bs. ${r.montoReembolso!.toStringAsFixed(2)}',
                                 style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.primary),
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primary,
+                                ),
                               ),
                           ],
                         ),

@@ -3,7 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../config/theme.dart';
 import '../../core/providers/catalog_provider.dart';
+import '../../core/providers/offline_catalog_provider.dart';
 import '../../core/providers/promotions_provider.dart';
+import '../../core/widgets/offline_data_stamp.dart';
 import 'widgets/product_card.dart';
 import 'widgets/skeleton_card.dart';
 import 'widgets/filter_bottom_sheet.dart';
@@ -105,12 +107,18 @@ class _CatalogPageState extends State<CatalogPage> {
               children: [
                 // Search bar fake button to quickly jump into search
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   child: InkWell(
                     onTap: () => context.push('/search'),
                     borderRadius: BorderRadius.circular(12),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.surface,
                         borderRadius: BorderRadius.circular(12),
@@ -118,13 +126,16 @@ class _CatalogPageState extends State<CatalogPage> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.search, color: AppColors.textMuted, size: 20),
+                          const Icon(
+                            Icons.search,
+                            color: AppColors.textMuted,
+                            size: 20,
+                          ),
                           const SizedBox(width: 10),
                           Text(
                             'Buscar prendas, marcas o estilos...',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: AppColors.textMuted,
-                                ),
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(color: AppColors.textMuted),
                           ),
                         ],
                       ),
@@ -147,14 +158,27 @@ class _CatalogPageState extends State<CatalogPage> {
                         provider.hasMore
                             ? 'Mostrando ${provider.products.length} de ${provider.totalItems} productos'
                             : '${provider.totalItems} productos',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(color: AppColors.textMuted),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.textMuted,
+                        ),
                       ),
                     ),
                   ),
                 const SizedBox(height: 4),
+
+                // [EXAMEN-2] C2.4: sello de datos offline + precio referencial (RN-014).
+                Padding(
+                  padding: const EdgeInsets.only(left: 20),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Consumer<OfflineCatalogProvider>(
+                      builder: (context, offline, _) => OfflineDataStamp(
+                        sello: offline.selloDescarga,
+                        esReferencial: offline.selloDescarga != null,
+                      ),
+                    ),
+                  ),
+                ),
 
                 // Active Filters Chips Bar
                 if (provider.hasActiveFilters)
@@ -170,20 +194,20 @@ class _CatalogPageState extends State<CatalogPage> {
                             padding: const EdgeInsets.only(right: 8),
                             child: Chip(
                               label: Text(
-                                  'Género: ${_genderLabel(provider.selectedGenero)}'),
-                              deleteIcon:
-                                  const Icon(Icons.close, size: 16),
-                              onDeleted: () =>
-                                  provider.setGenero(null),
-                              backgroundColor:
-                                  AppColors.surfaceVariant,
+                                'Género: ${_genderLabel(provider.selectedGenero)}',
+                              ),
+                              deleteIcon: const Icon(Icons.close, size: 16),
+                              onDeleted: () => provider.setGenero(null),
+                              backgroundColor: AppColors.surfaceVariant,
                             ),
                           ),
                         if (provider.selectedCategoryName != null)
                           Padding(
                             padding: const EdgeInsets.only(right: 8),
                             child: Chip(
-                              label: Text('Cat: ${provider.selectedCategoryName}'),
+                              label: Text(
+                                'Cat: ${provider.selectedCategoryName}',
+                              ),
                               deleteIcon: const Icon(Icons.close, size: 16),
                               onDeleted: () => provider.setCategory(null),
                               backgroundColor: AppColors.surfaceVariant,
@@ -193,7 +217,9 @@ class _CatalogPageState extends State<CatalogPage> {
                           Padding(
                             padding: const EdgeInsets.only(right: 8),
                             child: Chip(
-                              label: Text('Temp: ${provider.selectedTemporadaName}'),
+                              label: Text(
+                                'Temp: ${provider.selectedTemporadaName}',
+                              ),
                               deleteIcon: const Icon(Icons.close, size: 16),
                               onDeleted: () => provider.setTemporada(null),
                               backgroundColor: AppColors.surfaceVariant,
@@ -203,7 +229,9 @@ class _CatalogPageState extends State<CatalogPage> {
                           Padding(
                             padding: const EdgeInsets.only(right: 8),
                             child: Chip(
-                              label: Text('Talla: ${provider.selectedTallaValor}'),
+                              label: Text(
+                                'Talla: ${provider.selectedTallaValor}',
+                              ),
                               deleteIcon: const Icon(Icons.close, size: 16),
                               onDeleted: () => provider.setTalla(null),
                               backgroundColor: AppColors.surfaceVariant,
@@ -213,36 +241,50 @@ class _CatalogPageState extends State<CatalogPage> {
                           Padding(
                             padding: const EdgeInsets.only(right: 8),
                             child: Chip(
-                              label: Text('Color: ${provider.selectedColorNombre}'),
+                              label: Text(
+                                'Color: ${provider.selectedColorNombre}',
+                              ),
                               deleteIcon: const Icon(Icons.close, size: 16),
                               onDeleted: () => provider.setColor(null),
                               backgroundColor: AppColors.surfaceVariant,
                             ),
                           ),
-                        if (provider.minPrice != null || provider.maxPrice != null)
+                        if (provider.minPrice != null ||
+                            provider.maxPrice != null)
                           Padding(
                             padding: const EdgeInsets.only(right: 8),
                             child: Chip(
                               label: Text(
-                                  'Bs. ${provider.minPrice?.round() ?? 0} - ${provider.maxPrice?.round() ?? 1500}'),
+                                'Bs. ${provider.minPrice?.round() ?? 0} - ${provider.maxPrice?.round() ?? 1500}',
+                              ),
                               deleteIcon: const Icon(Icons.close, size: 16),
-                              onDeleted: () => provider.setPriceRange(null, null),
+                              onDeleted: () =>
+                                  provider.setPriceRange(null, null),
                               backgroundColor: AppColors.surfaceVariant,
                             ),
                           ),
-                        if (provider.ordering != null && provider.ordering != 'recientes')
+                        if (provider.ordering != null &&
+                            provider.ordering != 'recientes')
                           Padding(
                             padding: const EdgeInsets.only(right: 8),
                             child: Chip(
                               label: Text('Orden: ${provider.ordering}'),
                               deleteIcon: const Icon(Icons.close, size: 16),
-                              onDeleted: () => provider.setOrdering('recientes'),
+                              onDeleted: () =>
+                                  provider.setOrdering('recientes'),
                               backgroundColor: AppColors.surfaceVariant,
                             ),
                           ),
                         ActionChip(
-                          avatar: const Icon(Icons.clear_all, size: 16, color: AppColors.accent),
-                          label: const Text('Limpiar todo', style: TextStyle(color: AppColors.accent)),
+                          avatar: const Icon(
+                            Icons.clear_all,
+                            size: 16,
+                            color: AppColors.accent,
+                          ),
+                          label: const Text(
+                            'Limpiar todo',
+                            style: TextStyle(color: AppColors.accent),
+                          ),
                           onPressed: () => provider.clearFilters(),
                           backgroundColor: Colors.transparent,
                           side: const BorderSide(color: AppColors.accent),
@@ -252,9 +294,7 @@ class _CatalogPageState extends State<CatalogPage> {
                   ),
 
                 // Main Content
-                Expanded(
-                  child: _buildContent(context, provider),
-                ),
+                Expanded(child: _buildContent(context, provider)),
               ],
             ),
           );
@@ -263,7 +303,8 @@ class _CatalogPageState extends State<CatalogPage> {
     );
   }
 
-  Widget _buildContent(BuildContext context, CatalogProvider provider) {    if (provider.isLoading && provider.products.isEmpty) {
+  Widget _buildContent(BuildContext context, CatalogProvider provider) {
+    if (provider.isLoading && provider.products.isEmpty) {
       return GridView.builder(
         padding: const EdgeInsets.all(16),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -284,7 +325,11 @@ class _CatalogPageState extends State<CatalogPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.cloud_off_outlined, size: 64, color: AppColors.textMuted),
+              const Icon(
+                Icons.cloud_off_outlined,
+                size: 64,
+                color: AppColors.textMuted,
+              ),
               const SizedBox(height: 16),
               Text(
                 'No se pudo cargar el catálogo',
@@ -300,7 +345,10 @@ class _CatalogPageState extends State<CatalogPage> {
               ElevatedButton.icon(
                 onPressed: () => provider.loadCatalog(refresh: true),
                 icon: const Icon(Icons.refresh, color: Colors.white),
-                label: const Text('Reintentar', style: TextStyle(color: Colors.white)),
+                label: const Text(
+                  'Reintentar',
+                  style: TextStyle(color: Colors.white),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   minimumSize: const Size(160, 44),
@@ -319,7 +367,11 @@ class _CatalogPageState extends State<CatalogPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.inventory_2_outlined, size: 64, color: AppColors.textMuted),
+              const Icon(
+                Icons.inventory_2_outlined,
+                size: 64,
+                color: AppColors.textMuted,
+              ),
               const SizedBox(height: 16),
               Text(
                 'No hay productos disponibles',
@@ -396,7 +448,8 @@ class _GenderTabs extends StatelessWidget {
         separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (context, i) {
           final value = _options[i];
-          final isSelected = (selected == null && value == null) ||
+          final isSelected =
+              (selected == null && value == null) ||
               (selected != null &&
                   value != null &&
                   selected!.toUpperCase() == value);
@@ -407,16 +460,14 @@ class _GenderTabs extends StatelessWidget {
             backgroundColor: AppColors.surface,
             labelStyle: TextStyle(
               color: isSelected ? Colors.white : AppColors.textPrimary,
-              fontWeight:
-                  isSelected ? FontWeight.bold : FontWeight.normal,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               fontSize: 13,
             ),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
               side: BorderSide(
-                  color: isSelected
-                      ? AppColors.primary
-                      : AppColors.border),
+                color: isSelected ? AppColors.primary : AppColors.border,
+              ),
             ),
             onSelected: (_) => onSelected(value),
           );
