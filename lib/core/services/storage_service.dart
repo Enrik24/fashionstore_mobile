@@ -178,6 +178,13 @@ class StorageService {
 
   int? readLastTenant() => _prefs.getInt(_keyLastTenant);
 
+  // [EXAMEN-2] CU07/CU13/CU18: sucursal POS de la sesión (no hardcode).
+  Future<void> savePosSucursalId(int value) async {
+    await _prefs.setInt(_keyPosSucursal, value);
+  }
+
+  int? readPosSucursalId() => _prefs.getInt(_keyPosSucursal);
+
   Future<void> saveDownloadStamp(DateTime value) async {
     await _prefs.setString(_keyDownloadStamp, value.toIso8601String());
   }
@@ -199,6 +206,7 @@ class StorageService {
     await _secureStorage.delete(key: _keyDeviceId);
     await _prefs.remove(_keyLastTenant);
     await _prefs.remove(_keyDownloadStamp);
+    await _prefs.remove(_keyPosSucursal);
   }
 
   static const String _keyDatabaseKey = 'fs_offline_database_key';
@@ -210,4 +218,6 @@ class StorageService {
   static const String _keyDeviceId = 'fs_offline_device_id';
   static const String _keyLastTenant = 'fs_offline_last_tenant';
   static const String _keyDownloadStamp = 'fs_offline_download_stamp';
+  // [EXAMEN-2] CU07/CU13/CU18: sucursal POS de la sesión.
+  static const String _keyPosSucursal = 'fs_pos_sucursal_id';
 }

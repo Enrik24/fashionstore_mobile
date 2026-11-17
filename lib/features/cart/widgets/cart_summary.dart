@@ -2,14 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../config/theme.dart';
 
+/// [FIX-UI] Resumen del carrito: desglose con impuestos cuando existen y
+/// nota de "total referencial" cuando el carrito es offline (CU15/RN-014).
 class CartSummaryWidget extends StatelessWidget {
   final double subtotal;
   final double discount;
   final double shippingCost;
   final double total;
+  final double taxes;
   final String? couponCode;
   final VoidCallback onCheckout;
   final bool isLoading;
+  final bool esOffline;
 
   const CartSummaryWidget({
     super.key,
@@ -17,9 +21,11 @@ class CartSummaryWidget extends StatelessWidget {
     this.discount = 0.0,
     this.shippingCost = 0.0,
     required this.total,
+    this.taxes = 0.0,
     this.couponCode,
     required this.onCheckout,
     this.isLoading = false,
+    this.esOffline = false,
   });
 
   @override
@@ -31,7 +37,7 @@ class CartSummaryWidget extends StatelessWidget {
     );
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
@@ -107,6 +113,25 @@ class CartSummaryWidget extends StatelessWidget {
                 ],
               ),
             ],
+            if (taxes > 0) ...[
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    esOffline ? 'Impuestos estimados' : 'Impuestos',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  Text(
+                    currencyFormatter.format(taxes),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ],
+              ),
+            ],
             const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -144,7 +169,42 @@ class CartSummaryWidget extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            if (esOffline) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.info.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppColors.info.withOpacity(0.25)),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(
+                      Icons.cloud_off_outlined,
+                      size: 16,
+                      color: AppColors.info,
+                    ),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Total referencial: se confirmará con el servidor '
+                        'al sincronizar.',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textSecondary,
+                          height: 1.3,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(height: 14),
             ElevatedButton(
               onPressed: isLoading ? null : onCheckout,
               style: ElevatedButton.styleFrom(

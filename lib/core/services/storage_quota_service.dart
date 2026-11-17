@@ -2,6 +2,30 @@ import '../../config/config.dart';
 import '../database/local_database_service.dart';
 
 /// [EXAMEN-2] Cuota, priorización y limpieza de datos locales (RNF-14).
+
+/// [EXAMEN-2] B1.1.i: el paquete no cabe en el espacio local.
+///
+/// La app debe **preguntar al usuario** si descarga sólo los productos más
+/// vendidos (CU05, flujo alterno 2) en lugar de fallar sin más.
+class CuotaInsuficienteException implements Exception {
+  const CuotaInsuficienteException({
+    required this.estimadoBytes,
+    required this.disponibleBytes,
+    required this.maxProductos,
+  });
+
+  final int estimadoBytes;
+  final int disponibleBytes;
+
+  /// [EXAMEN-2] B1.1.i: cuántos productos sí caben en el espacio disponible.
+  final int maxProductos;
+
+  @override
+  String toString() =>
+      'CuotaInsuficienteException(estimado: $estimadoBytes, '
+      'disponible: $disponibleBytes, maxProductos: $maxProductos)';
+}
+
 class StorageQuotaService {
   StorageQuotaService({
     required LocalDatabaseService database,
@@ -46,6 +70,24 @@ class StorageQuotaService {
       return scoreB.compareTo(scoreA);
     });
     return priorizados;
+  }
+
+  /// [EXAMEN-2] B1.1.i: cuántos productos caben en el espacio disponible.
+  ///
+  /// Se usa para la descarga **selectiva**: en vez de fallar, la app ofrece
+  /// al usuario descargar sólo los N productos más vendidos (CU05, flujo
+  /// alterno 2).
+  Future<int> maxProductosPorEspacio({
+    required int totalProductos,
+    required int bytesEstimadosPaquete,
+  }) async {
+    if (totalProductos <= 0) return 0;
+    if (bytesEstimadosPaquete <= 0) return totalProductos;
+    final disponible = await espacioDisponible();
+    if (disponible <= 0) return 0;
+    final caben = (disponible * totalProductos) ~/ bytesEstimadosPaquete;
+    if (caben >= totalProductos) return totalProductos;
+    return caben < 1 ? 1 : caben;
   }
 
   Future<int> limpiarSincronizados({int dias = 30}) async {

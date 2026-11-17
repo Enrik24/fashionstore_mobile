@@ -1,4 +1,8 @@
+import 'dart:convert';
+
 import 'package:fashionstore_mobile/core/database/local_database_service.dart';
+import 'package:fashionstore_mobile/core/models/api_response.dart';
+import 'package:fashionstore_mobile/core/providers/offline_catalog_provider.dart';
 import 'package:fashionstore_mobile/core/services/offline_catalog_service.dart';
 import 'package:fashionstore_mobile/core/services/storage_quota_service.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -36,28 +40,137 @@ void main() {
   });
 
   // [EXAMEN-2] C2.4 P1: incremental por cursor + baja lógica (deleted_at).
-  test('CU05 incremental agrega por cursor y la baja lógica oculta el producto', () async {
+  test(
+    'CU05 incremental agrega por cursor y la baja lógica oculta el producto',
+    () async {
+      final db = LocalDatabaseService(
+        factory: databaseFactoryFfi,
+        cifrar: false,
+      );
+      await db.abrir(ruta: inMemoryDatabasePath);
+      final client = FakeOfflineClient();
+      client.responder = (path, data) {
+        if (path.contains('/descargas/registrar')) {
+          return <String, dynamic>{};
+        }
+        if (path.contains('/offline/catalogo')) {
+          return <String, dynamic>{
+            'productos': <Map<String, dynamic>>[
+              <String, dynamic>{'id': 2, 'nombre': 'Pantalón', 'precio': 150},
+            ],
+            'cursor': 'cursor-2',
+          };
+        }
+        return <String, dynamic>{
+          'productos': <Map<String, dynamic>>[
+            <String, dynamic>{'id': 1, 'nombre': 'Camisa', 'precio': 100},
+          ],
+          'cursor': 'cursor-1',
+        };
+      };
+      final service = OfflineCatalogService(
+        database: db,
+        tenantId: 5,
+        client: client,
+      );
+
+      final inicial = await service.descargarPaquete();
+      expect(inicial.cursorCatalogo, 'cursor-1');
+      expect(await service.catalogoLocal(), hasLength(1));
+
+      final incremental = await service.descargarIncremental(
+        cursor: inicial.cursorCatalogo,
+      );
+      expect(incremental.cursorCatalogo, 'cursor-2');
+      expect(incremental.incompleto, isFalse);
+      var catalogo = await service.catalogoLocal();
+      expect(catalogo, hasLength(2));
+      expect(catalogo.map((p) => p.id), containsAll(<int>[1, 2]));
+
+      await service.bajaLogica(1);
+      catalogo = await service.catalogoLocal();
+      expect(catalogo, hasLength(1));
+      expect(catalogo.single.id, 2);
+
+      // La fila sigue en SQLite con deleted_at (baja lógica, no borrado físico).
+      final filas = await db.database!.query(
+        'productos',
+        where: 'id = ? AND tenant_id = ?',
+        whereArgs: <Object?>[1, 5],
+      );
+      expect(filas, hasLength(1));
+      expect(filas.single['deleted_at'], isNotNull);
+      await db.cerrar();
+    },
+  );
+
+  // [EXAMEN-2] CU05: el payload real del backend debe persistir todas sus
+  // secciones y la lectura local debe mostrar el stock disponible.
+  test('CU05 persiste el payload real y muestra catálogo con stock', () async {
     final db = LocalDatabaseService(factory: databaseFactoryFfi, cifrar: false);
     await db.abrir(ruta: inMemoryDatabasePath);
     final client = FakeOfflineClient();
-    client.responder = (path, data) {
-      if (path.contains('/descargas/registrar')) {
-        return <String, dynamic>{};
-      }
-      if (path.contains('/offline/catalogo')) {
-        return <String, dynamic>{
-          'productos': <Map<String, dynamic>>[
-            <String, dynamic>{'id': 2, 'nombre': 'Pantalón', 'precio': 150},
-          ],
-          'cursor': 'cursor-2',
-        };
-      }
-      return <String, dynamic>{
-        'productos': <Map<String, dynamic>>[
-          <String, dynamic>{'id': 1, 'nombre': 'Camisa', 'precio': 100},
+    client.responder = (_, __) => <String, dynamic>{
+      'sucursal_id': 3,
+      'catalogo': <Map<String, dynamic>>[
+        <String, dynamic>{
+          'id': 1,
+          'sku': 'CAM-001',
+          'nombre': 'Camisa',
+          'precio': 100,
+        },
+      ],
+      'variantes': <Map<String, dynamic>>[
+        <String, dynamic>{
+          'id': 7,
+          'producto_id': 1,
+          'sku_variante': 'CAM-001-M',
+          'precio_variante': 100,
+        },
+      ],
+      'stock': <Map<String, dynamic>>[
+        <String, dynamic>{
+          'variante_producto_id': 7,
+          'sucursal_id': 3,
+          'cantidad': 8,
+          'cantidad_disponible': 5,
+          'cantidad_reservada': 3,
+          'stock_minimo': 2,
+        },
+      ],
+      'datos_maestros': <String, dynamic>{
+        'categorias': <Map<String, dynamic>>[
+          <String, dynamic>{'id': 4, 'nombre': 'Camisas'},
         ],
-        'cursor': 'cursor-1',
-      };
+        'tallas': <Map<String, dynamic>>[
+          <String, dynamic>{'id': 5, 'valor': 'M'},
+        ],
+        'colores': <Map<String, dynamic>>[
+          <String, dynamic>{'id': 6, 'nombre': 'Azul', 'codigo_hex': '#0000FF'},
+        ],
+      },
+      'clientes_frecuentes': <Map<String, dynamic>>[
+        <String, dynamic>{
+          'id': 9,
+          'nit_ci': '1234567',
+          'telefono': '70000000',
+          'correo': 'cliente@example.com',
+          'compras': 2,
+        },
+      ],
+      'promociones': <String, dynamic>{
+        'promociones': <Map<String, dynamic>>[
+          <String, dynamic>{
+            'id': 10,
+            'nombre': 'Promoción summer',
+            'tipo': 'PORCENTAJE',
+            'valor': 15,
+          },
+        ],
+        'cupones': <Map<String, dynamic>>[
+          <String, dynamic>{'id': 11, 'codigo': 'SUMMER15'},
+        ],
+      },
     };
     final service = OfflineCatalogService(
       database: db,
@@ -65,32 +178,145 @@ void main() {
       client: client,
     );
 
-    final inicial = await service.descargarPaquete();
-    expect(inicial.cursorCatalogo, 'cursor-1');
-    expect(await service.catalogoLocal(), hasLength(1));
+    final estado = await service.descargarPaquete();
+    expect(estado.incompleto, isFalse);
+    expect(estado.sello, isNotNull);
 
-    final incremental = await service.descargarIncremental(
-      cursor: inicial.cursorCatalogo,
+    expect(await db.database!.query('productos'), hasLength(1));
+    expect(await db.database!.query('variantes'), hasLength(1));
+    expect(await db.database!.query('stock'), hasLength(1));
+    expect(await db.database!.query('categorias'), hasLength(1));
+    expect(await db.database!.query('tallas'), hasLength(1));
+    expect(await db.database!.query('colores'), hasLength(1));
+    expect(await db.database!.query('clientes'), hasLength(1));
+
+    final promociones = await db.database!.query(
+      'meta',
+      where: 'clave = ? AND tenant_id = ?',
+      whereArgs: <Object?>['promociones_offline', 5],
     );
-    expect(incremental.cursorCatalogo, 'cursor-2');
-    expect(incremental.incompleto, isFalse);
-    var catalogo = await service.catalogoLocal();
-    expect(catalogo, hasLength(2));
-    expect(catalogo.map((p) => p.id), containsAll(<int>[1, 2]));
+    expect(promociones, hasLength(1));
+    final promocionesGuardadas =
+        jsonDecode(promociones.single['valor']! as String)
+            as Map<String, dynamic>;
+    expect(promocionesGuardadas['promociones'], hasLength(1));
+    expect(promocionesGuardadas['cupones'], hasLength(1));
+    expect(
+      (promocionesGuardadas['promociones'] as List).first['nombre'],
+      'Promoción summer',
+    );
 
-    await service.bajaLogica(1);
-    catalogo = await service.catalogoLocal();
-    expect(catalogo, hasLength(1));
-    expect(catalogo.single.id, 2);
+    final productos = await service.catalogoLocal();
+    expect(productos, hasLength(1));
+    expect(productos.single.variantes, hasLength(1));
+    expect(productos.single.totalStock, 5);
+    await db.cerrar();
+  });
 
-    // La fila sigue en SQLite con deleted_at (baja lógica, no borrado físico).
-    final filas = await db.database!.query(
+  // [EXAMEN-2] CU05: una falla a mitad del paquete no puede dejar un snapshot
+  // parcial ni borrar el snapshot válido anterior.
+  test('CU05 revierte todo el paquete si una variante es inválida', () async {
+    final db = LocalDatabaseService(factory: databaseFactoryFfi, cifrar: false);
+    await db.abrir(ruta: inMemoryDatabasePath);
+    final service = OfflineCatalogService(
+      database: db,
+      tenantId: 5,
+      client: FakeOfflineClient(),
+    );
+
+    await service.guardarPaquete(<String, dynamic>{
+      'catalogo': <Map<String, dynamic>>[
+        <String, dynamic>{
+          'id': 1,
+          'sku': 'OK-1',
+          'nombre': 'Original',
+          'precio': 50,
+        },
+      ],
+      'variantes': <Map<String, dynamic>>[
+        <String, dynamic>{'id': 7, 'producto_id': 1, 'sku_variante': 'OK-1-M'},
+      ],
+      'promociones': <String, dynamic>{
+        'promociones': <Map<String, dynamic>>[
+          <String, dynamic>{'id': 20, 'nombre': 'Promoción anterior'},
+        ],
+        'cupones': <Map<String, dynamic>>[],
+      },
+    });
+
+    await expectLater(
+      service.guardarPaquete(<String, dynamic>{
+        'catalogo': <Map<String, dynamic>>[
+          <String, dynamic>{
+            'id': 2,
+            'sku': 'NUEVO-2',
+            'nombre': 'Nuevo',
+            'precio': 80,
+          },
+        ],
+        'variantes': <Map<String, dynamic>>[
+          // sku_variante es NOT NULL: la segunda escritura debe fallar.
+          <String, dynamic>{'id': 8, 'producto_id': 2},
+        ],
+      }),
+      throwsA(anything),
+    );
+
+    final productos = await db.database!.query(
       'productos',
-      where: 'id = ? AND tenant_id = ?',
-      whereArgs: <Object?>[1, 5],
+      where: 'tenant_id = ?',
+      whereArgs: <Object?>[5],
     );
-    expect(filas, hasLength(1));
-    expect(filas.single['deleted_at'], isNotNull);
+    expect(productos, hasLength(1));
+    expect(productos.single['id'], 1);
+    expect(productos.single['nombre'], 'Original');
+    final promociones = await db.database!.query(
+      'meta',
+      where: 'clave = ? AND tenant_id = ?',
+      whereArgs: <Object?>['promociones_offline', 5],
+    );
+    expect(promociones, hasLength(1));
+    expect(promociones.single['valor'], contains('Promoción anterior'));
+    await db.cerrar();
+  });
+
+  // [EXAMEN-2] CU05: el provider siempre termina en un estado terminal y
+  // permite un reintento después de un error HTTP.
+  test('CU05 provider termina descargando después de un error HTTP', () async {
+    final db = LocalDatabaseService(factory: databaseFactoryFfi, cifrar: false);
+    await db.abrir(ruta: inMemoryDatabasePath);
+    final client = FakeOfflineClient();
+    client.responder = (_, __) =>
+        throw ApiException(message: 'Service Unavailable', statusCode: 503);
+    final service = OfflineCatalogService(
+      database: db,
+      tenantId: 5,
+      client: client,
+    );
+    final provider = OfflineCatalogProvider(service: service);
+
+    await provider.descargarPaquete();
+
+    expect(provider.isDownloading, isFalse);
+    expect(provider.status.enProgreso, isFalse);
+    expect(provider.status.incompleto, isTrue);
+    expect(provider.errorMessage, contains('HTTP 503'));
+
+    // El mismo provider puede reintentarse; un éxito posterior termina también
+    // en un estado terminal y carga el catálogo persistido.
+    client.responder = (_, __) => <String, dynamic>{
+      'catalogo': <Map<String, dynamic>>[
+        <String, dynamic>{'id': 1, 'nombre': 'Camisa', 'precio': 100},
+      ],
+    };
+    await provider.descargarPaquete();
+
+    expect(provider.isDownloading, isFalse);
+    expect(provider.status.enProgreso, isFalse);
+    expect(provider.status.incompleto, isFalse);
+    expect(provider.status.sello, isNotNull);
+    expect(provider.errorMessage, isNull);
+    expect(provider.products, hasLength(1));
     await db.cerrar();
   });
 
@@ -115,38 +341,44 @@ void main() {
   });
 
   // [EXAMEN-2] C2.3/C2.4 P1: espacio insuficiente bloquea antes de consumir red.
-  test('CU05 espacio insuficiente bloquea la descarga sin llamadas de red', () async {
-    final db = LocalDatabaseService(factory: databaseFactoryFfi, cifrar: false);
-    await db.abrir(ruta: inMemoryDatabasePath);
-    final client = FakeOfflineClient();
-    client.responder = (_, __) => <String, dynamic>{
-      'productos': <Map<String, dynamic>>[
-        <String, dynamic>{'id': 1, 'nombre': 'Camisa', 'precio': 100},
-      ],
-    };
-    final service = OfflineCatalogService(
-      database: db,
-      tenantId: 5,
-      client: client,
-    );
-    // Límite mínimo: cualquier paquete estimado supera el espacio disponible.
-    final quota = StorageQuotaService(
-      database: db,
-      tenantId: 5,
-      limiteBytes: 1024,
-    );
+  test(
+    'CU05 espacio insuficiente bloquea la descarga sin llamadas de red',
+    () async {
+      final db = LocalDatabaseService(
+        factory: databaseFactoryFfi,
+        cifrar: false,
+      );
+      await db.abrir(ruta: inMemoryDatabasePath);
+      final client = FakeOfflineClient();
+      client.responder = (_, __) => <String, dynamic>{
+        'productos': <Map<String, dynamic>>[
+          <String, dynamic>{'id': 1, 'nombre': 'Camisa', 'precio': 100},
+        ],
+      };
+      final service = OfflineCatalogService(
+        database: db,
+        tenantId: 5,
+        client: client,
+      );
+      // Límite mínimo: cualquier paquete estimado supera el espacio disponible.
+      final quota = StorageQuotaService(
+        database: db,
+        tenantId: 5,
+        limiteBytes: 1024,
+      );
 
-    expect(await quota.puedeDescargar(1024 * 1024), isFalse);
-    expect(await service.espacioUsado(), greaterThanOrEqualTo(0));
+      expect(await quota.puedeDescargar(1024 * 1024), isFalse);
+      expect(await service.espacioUsado(), greaterThanOrEqualTo(0));
 
-    // La puerta de cuota (RNF-14) impide descargarPaquete: no se consume red.
-    final puedeDescargar = await quota.puedeDescargar(1024 * 1024);
-    if (puedeDescargar) {
-      await service.descargarPaquete();
-    }
-    expect(client.paths, isEmpty);
-    expect(client.requests, isEmpty);
-    expect(await service.catalogoLocal(), isEmpty);
-    await db.cerrar();
-  });
+      // La puerta de cuota (RNF-14) impide descargarPaquete: no se consume red.
+      final puedeDescargar = await quota.puedeDescargar(1024 * 1024);
+      if (puedeDescargar) {
+        await service.descargarPaquete();
+      }
+      expect(client.paths, isEmpty);
+      expect(client.requests, isEmpty);
+      expect(await service.catalogoLocal(), isEmpty);
+      await db.cerrar();
+    },
+  );
 }

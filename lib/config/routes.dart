@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../core/database/repositories/local_permissions_repository.dart';
 import '../core/models/order_model.dart';
 import '../core/providers/auth_provider.dart';
 import '../core/providers/offline_session_provider.dart';
+import '../core/services/storage_service.dart';
 import '../core/models/product_model.dart';
 import '../features/splash/splash_screen.dart';
 import '../features/auth/login/login_page.dart';
@@ -62,7 +64,7 @@ class RolCajeroRedirect {
 final GoRouter appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: '/splash',
-  redirect: (context, state) {
+  redirect: (context, state) async {
     final uri = state.uri.path;
     // [EXAMEN-2] Las pantallas operativas exigen sesión online u offline.
     final rutaProtegida =
@@ -98,20 +100,59 @@ final GoRouter appRouter = GoRouter(
       // [EXAMEN-2] Guarda de rol para el POS. El backend conserva la
       // autoridad sobre permisos; la app solo oculta funciones no autorizadas.
       if (uri.startsWith('/pos')) {
-        final roles =
+        var roles =
             auth.currentUser?.roles
                 .map((rol) => rol.nombre.toLowerCase())
                 .toSet() ??
             const <String>{};
+        // [EXAMEN-2] B2.1: permisos concretos del usuario (offline).
+        var permisosPos = const <String>{};
+        // [EXAMEN-2] B1.8.d: en modo offline no hay sesión online de la que
+        // sacar los roles; se usan los **guardados localmente** con la sesión
+        // offline. Antes el POS quedaba bloqueado al cajero sin conexión.
+        if (roles.isEmpty && offline.sesionLocalActiva) {
+          try {
+            final permisos = context.read<LocalPermissionsRepository>();
+            final storage = context.read<StorageService>();
+            final usuarioId = storage.getUser()?.id ?? 0;
+            final tenantId = storage.readLastTenant() ?? 0;
+            if (usuarioId > 0 && tenantId > 0) {
+              roles = await permisos.leerRoles(
+                tenantId: tenantId,
+                usuarioId: usuarioId,
+              );
+              // [EXAMEN-2] B2.1: además del rol, se comprueba el permiso
+              // concreto del POS. Si la lista de permisos está vacía (no se
+              // descargó), no se bloquea: sólo el rol decide.
+              final lista = await permisos.leerPermisos(
+                tenantId: tenantId,
+                usuarioId: usuarioId,
+              );
+              if (lista.isNotEmpty) {
+                permisosPos = lista.map((p) => p.toLowerCase()).toSet();
+              }
+            }
+          } catch (_) {
+            // Sin datos locales de permisos: se mantiene el bloqueo.
+          }
+        }
         final permitido =
             roles.contains('cajero') ||
             roles.contains('encargado') ||
             roles.contains('encargado de sucursal') ||
             roles.contains('administrador');
-        if (!permitido) {
+        // [EXAMEN-2] B2.1: si el usuario tiene rol de tienda pero **no** el
+        // permiso de ventas, se avisa con precisión.
+        final faltaPermiso =
+            permitido &&
+            permisosPos.isNotEmpty &&
+            !permisosPos.contains('ventas');
+        if (!permitido || faltaPermiso) {
           // [EXAMEN-2] Fase 3: sin rol Cajero/Encargado → /home con aviso.
           RolCajeroRedirect.onAviso?.call(
-            'Solo el personal de tienda (cajero/encargado) puede usar el POS.',
+            faltaPermiso
+                ? 'Tu cuenta no tiene permiso para registrar ventas.'
+                : 'Solo el personal de tienda (cajero/encargado) puede usar el POS.',
           );
           return '/home';
         }

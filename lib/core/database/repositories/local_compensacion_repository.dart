@@ -9,12 +9,21 @@ import 'tenant_local_repository.dart';
 /// de `GET /offline/compensaciones*` para operar sin red y para evidenciar
 /// que un reintento de sincronización no duplica la compensación.
 class LocalCompensacionRepository extends TenantLocalRepository {
-  LocalCompensacionRepository(super.db, {required super.tenantId});
+  LocalCompensacionRepository(
+    super.db, {
+    required super.tenantId,
+    super.usuarioId,
+  });
 
   static const String tabla = 'compensaciones';
 
-  /// Guarda una compensación deduplicando por `id` y por
-  /// `operacion_offline_id` (unique de backend, RN-005).
+  /// Guarda una compensación deduplicando por `uuid_operacion` (clave real de
+  /// idempotencia, **RN-020**), después por `operacion_offline_id` (unique de
+  /// backend, RN-005) y por último por `id`.
+  ///
+  /// [EXAMEN-2] B1.9.b: antes la deduplicación era sólo por
+  /// `operacion_offline_id`, por lo que un reintento con el mismo
+  /// `uuid_operacion` y otro `id` insertaba una **segunda** devolución.
   Future<void> guardarCompensacion(CompensacionModel compensacion) async {
     final datos = <String, Object?>{
       ...compensacion.toMap(),
@@ -22,6 +31,23 @@ class LocalCompensacionRepository extends TenantLocalRepository {
         'origen': 'backend-offline-compensaciones',
       }),
     };
+    // [EXAMEN-2] RN-020: primero se busca por `uuid_operacion`.
+    final uuidOperacion = compensacion.uuidOperacion;
+    final porUuid = (uuidOperacion == null || uuidOperacion.isEmpty)
+        ? null
+        : await consultar(
+            tabla,
+            where: 'uuid_operacion = ? AND tenant_id = ?',
+            whereArgs: <Object?>[uuidOperacion, tenantId],
+            limit: 1,
+          );
+    if (porUuid != null && porUuid.isNotEmpty) {
+      final idExistente = (porUuid.first['id'] as num?)?.toInt()
+          ?? compensacion.id;
+      final actualizable = <String, Object?>{...datos, 'id': idExistente};
+      await guardarPorClave(tabla, 'id', idExistente, actualizable);
+      return;
+    }
     // Dedupe por operacion_offline_id: un resync con el mismo id actualiza
     // la fila existente en vez de insertar un duplicado.
     final porOperacion = compensacion.operacionOfflineId == null
@@ -80,11 +106,15 @@ class LocalCompensacionRepository extends TenantLocalRepository {
   }
 
   /// Actualiza solo el estado (p. ej. confirmación de efectivo en caja).
+  ///
+  /// [EXAMEN-2] B1.9.d: `errorDetalle` deja constancia del fallo (red, 5xx o
+  /// respuesta inesperada) para que el cajero sepa por qué no se pudo aplicar.
   Future<int> actualizarEstado(
     int id, {
     required String estado,
     DateTime? fechaCompletado,
     String? resueltoPor,
+    String? errorDetalle,
   }) {
     return actualizarPorClaves(
       tabla,
@@ -93,6 +123,7 @@ class LocalCompensacionRepository extends TenantLocalRepository {
         'fecha_completado': fechaCompletado?.toUtc().toIso8601String(),
         'fecha_resolucion': fechaCompletado?.toUtc().toIso8601String(),
         'resuelto_por': resueltoPor,
+        'error_detalle': errorDetalle,
       },
       <String, Object?>{'id': id},
     );

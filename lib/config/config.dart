@@ -1,25 +1,24 @@
-import 'package:flutter/foundation.dart';
-
 class AppConfig {
   static const String appName = 'FashionStore';
   static const String appVersion = '1.0.0';
 
-  /// Base API URL.
-  /// Uses 10.0.2.2 for Android Emulator, localhost for iOS/Web/Desktop, or custom host.
+  /// URL del backend configurable al compilar:
+  /// `flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000`.
+  ///
+  /// Se acepta tanto la raíz del servidor como una URL que ya termine en
+  /// `/api/v1`. Render continúa siendo el destino predeterminado.
+  static const String _apiBaseUrlConfigurada = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'https://fashionstore-backend-production-c05430ab.up.railway.app/api/v1',
+  );
+
   static String get apiBaseUrl {
-    if (kIsWeb) {
-      return 'https://fashionstore-backend-3wsr.onrender.com/api/v1';
+    var url = _apiBaseUrlConfigurada.trim();
+    while (url.endsWith('/')) {
+      url = url.substring(0, url.length - 1);
     }
-    switch (defaultTargetPlatform) {
-      case TargetPlatform.android:
-        return 'https://fashionstore-backend-3wsr.onrender.com/api/v1';
-      case TargetPlatform.iOS:
-      case TargetPlatform.macOS:
-      case TargetPlatform.windows:
-      case TargetPlatform.linux:
-      default:
-        return 'https://fashionstore-backend-3wsr.onrender.com/api/v1';
-    }
+    if (url.endsWith('/api/v1')) return url;
+    return '$url/api/v1';
   }
 
   static const String stripePublishableKey = String.fromEnvironment(

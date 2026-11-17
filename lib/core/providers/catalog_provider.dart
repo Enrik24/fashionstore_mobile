@@ -324,7 +324,12 @@ class CatalogProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _availabilityList = await _catalogService.getDisponibilidad(
+      // [EXAMEN-2] B2.1 (corrección de exploración offline): se usa la versión
+      // con respaldo. Sin conexión, `getDisponibilidadConRespaldo` devuelve el
+      // stock descargado desde SQLite ("Stock descargado") en lugar de dejar
+      // la lista vacía — que hacía que el detalle mostrara "Sin stock
+      // disponible para esta combinación" con stock local existente.
+      _availabilityList = await _catalogService.getDisponibilidadConRespaldo(
         productId,
         varianteId: variantId,
       );

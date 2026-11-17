@@ -98,7 +98,7 @@ class _CouponCardState extends State<CouponCard> {
       builder: (context, cart, _) {
         final applied = cart.cuponCodigo;
         return Container(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: AppColors.surface,
             borderRadius: BorderRadius.circular(16),
@@ -112,19 +112,24 @@ class _CouponCardState extends State<CouponCard> {
                   const Icon(
                     Icons.local_offer_outlined,
                     color: AppColors.accent,
-                    size: 20,
+                    size: 18,
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 6),
                   Text(
                     'Cupón de descuento',
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.bold,
+                      fontSize: 13,
                     ),
                   ),
                   const Spacer(),
                   if (applied == null)
                     TextButton(
                       onPressed: _showAvailable,
+                      style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                      ),
                       child: const Text(
                         'Ver disponibles',
                         style: TextStyle(
@@ -141,7 +146,7 @@ class _CouponCardState extends State<CouponCard> {
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 10,
-                    vertical: 8,
+                    vertical: 6,
                   ),
                   decoration: BoxDecoration(
                     color: AppColors.success.withOpacity(0.1),
@@ -159,27 +164,27 @@ class _CouponCardState extends State<CouponCard> {
                       ),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              applied,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.success,
-                              ),
-                            ),
-                            Text(
-                              'Descuento: Bs. ${cart.discount.toStringAsFixed(2)}',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: AppColors.success,
-                              ),
-                            ),
-                          ],
+                        child: Text(
+                          applied,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: AppColors.success,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        '- Bs. ${cart.discount.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: AppColors.success,
                         ),
                       ),
                       IconButton(
+                        visualDensity: VisualDensity.compact,
                         icon: const Icon(
                           Icons.close,
                           size: 18,
@@ -198,11 +203,29 @@ class _CouponCardState extends State<CouponCard> {
                       child: TextField(
                         controller: _controller,
                         textCapitalization: TextCapitalization.characters,
+                        style: const TextStyle(fontSize: 13),
                         decoration: InputDecoration(
+                          isDense: true,
                           hintText: 'Ej. BIENVENIDA10',
+                          hintStyle: const TextStyle(
+                            fontSize: 13,
+                            color: AppColors.textMuted,
+                          ),
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 12,
-                            vertical: 10,
+                            vertical: 11,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(
+                              color: AppColors.border,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(
+                              color: AppColors.accent,
+                            ),
                           ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
@@ -213,33 +236,37 @@ class _CouponCardState extends State<CouponCard> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    ElevatedButton(
-                      onPressed: _isApplying || cart.isUpdating
-                          ? null
-                          : () => _apply(_controller.text),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.accent,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                    SizedBox(
+                      height: 40,
+                      child: ElevatedButton(
+                        onPressed: _isApplying || cart.isUpdating
+                            ? null
+                            : () => _apply(_controller.text),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.accent,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 14),
                         ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                      ),
-                      child: _isApplying
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
+                        child: _isApplying
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text(
+                                'Aplicar',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                            )
-                          : const Text(
-                              'Aplicar',
-                              style: TextStyle(color: Colors.white),
-                            ),
+                      ),
                     ),
                   ],
                 ),

@@ -2,7 +2,7 @@ import 'local_operation_repository.dart';
 
 /// [EXAMEN-2] Repositorio de Ã³rdenes locales, incluidas las de pago diferido.
 class LocalOrderRepository extends LocalOperationRepository {
-  LocalOrderRepository(super.db, {required super.tenantId})
+  LocalOrderRepository(super.db, {required super.tenantId, super.usuarioId})
     : super(
         tablaCabecera: 'ordenes_locales',
         columnaUuid: 'uuid_orden',

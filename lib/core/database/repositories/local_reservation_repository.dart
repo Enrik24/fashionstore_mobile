@@ -2,7 +2,7 @@ import 'local_operation_repository.dart';
 
 /// [EXAMEN-2] Repositorio de reservas creadas sin conexiÃ³n.
 class LocalReservationRepository extends LocalOperationRepository {
-  LocalReservationRepository(super.db, {required super.tenantId})
+  LocalReservationRepository(super.db, {required super.tenantId, super.usuarioId})
     : super(
         tablaCabecera: 'reservas_locales',
         columnaUuid: 'uuid_reserva',

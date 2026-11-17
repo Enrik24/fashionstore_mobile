@@ -2,7 +2,7 @@ import 'tenant_local_repository.dart';
 
 /// [EXAMEN-2] Repositorio del carrito persistente y tenant-aware.
 class OfflineCartRepository extends TenantLocalRepository {
-  OfflineCartRepository(super.db, {required super.tenantId});
+  OfflineCartRepository(super.db, {required super.tenantId, super.usuarioId});
 
   Future<Map<String, Object?>?> obtenerActivo() async {
     final filas = await consultar(
@@ -59,6 +59,8 @@ class OfflineCartRepository extends TenantLocalRepository {
     return db.insert('items_carrito', <String, Object?>{
       'uuid_carrito': uuidCarrito,
       'tenant_id': tenantId,
+      // [EXAMEN-2] B0.4.b: el detalle del carrito también registra el usuario.
+      'usuario_id': usuarioId,
       'variante_producto_id': varianteProductoId,
       'cantidad': cantidad,
       'precio_unitario': precioUnitario,

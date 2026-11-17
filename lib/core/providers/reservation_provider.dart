@@ -47,47 +47,17 @@ class ReservationProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // [FIX] Antes, al fallar el API se inyectaban 3 sucursales
+      // hardcodeadas (Ventura Mall/Las Brisas/Centro) y el usuario veía esa
+      // lista ficticia en "Retiro en Tienda" aunque hubiera conexión. Ahora
+      // `getSucursales` degrada solo a las sucursales REALES descargadas
+      // (tabla local `sucursales`); si no hay datos, la UI muestra su aviso.
       _branches = await _reservationService.getSucursales();
       if (_branches.isNotEmpty && _selectedBranch == null) {
         _selectedBranch = _branches.first;
       }
-    } catch (e) {
-      // Fallback default branches in Santa Cruz if API returns empty/fails
-      if (_branches.isEmpty) {
-        _branches = [
-          BranchModel(
-            id: 1,
-            nombre: 'Sucursal Ventura Mall',
-            direccion: '4to Anillo, Ventura Mall, Piso 2, Santa Cruz',
-            telefono: '+591 3 3888000',
-            latitud: -17.7547,
-            longitud: -63.1979,
-            horarioApertura: '10:00',
-            horarioCierre: '22:00',
-          ),
-          BranchModel(
-            id: 2,
-            nombre: 'Sucursal Las Brisas',
-            direccion: 'Av. Banzer 4to Anillo, CC Las Brisas, Santa Cruz',
-            telefono: '+591 3 3444000',
-            latitud: -17.7582,
-            longitud: -63.1764,
-            horarioApertura: '10:00',
-            horarioCierre: '22:00',
-          ),
-          BranchModel(
-            id: 3,
-            nombre: 'Sucursal Centro',
-            direccion: 'Calle 21 de Mayo #120, Centro Histórico, Santa Cruz',
-            telefono: '+591 3 3332211',
-            latitud: -17.7833,
-            longitud: -63.1821,
-            horarioApertura: '09:00',
-            horarioCierre: '20:00',
-          ),
-        ];
-        _selectedBranch = _branches.first;
-      }
+    } catch (_) {
+      _branches = const <BranchModel>[];
     } finally {
       _isLoadingBranches = false;
       notifyListeners();
@@ -105,6 +75,9 @@ class ReservationProvider extends ChangeNotifier {
     String? horarioAproximado,
     String? notas,
     required List<Map<String, dynamic>> items,
+    // [EXAMEN-2] B1.2.c/d: el cajero forzó la reserva porque el stock local
+    // no alcanzaba; queda marcada para revisión del servidor (RN-006).
+    bool forzar = false,
   }) async {
     _isCreating = true;
     _errorMessage = null;
@@ -117,6 +90,7 @@ class ReservationProvider extends ChangeNotifier {
         horarioAproximado: horarioAproximado,
         notas: notas,
         items: items,
+        forzar: forzar,
       );
       _reservations.insert(0, newReservation);
       _isCreating = false;

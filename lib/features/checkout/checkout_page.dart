@@ -38,6 +38,20 @@ class _CheckoutPageState extends State<CheckoutPage> {
     if (!mounted) return;
 
     if (order != null) {
+      // [EXAMEN-2] CU15/§19: feedback del pago diferido offline.
+      final mensajeOffline = checkoutProvider.mensaje;
+      if (mensajeOffline != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(mensajeOffline)),
+        );
+      }
+      // [EXAMEN-2] B1.6.f: si la orden quedó **local** (id == 0) no hay
+      // sesión de Stripe que abrir: antes se llamaba a `createStripeSession(0)`
+      // y salía un segundo snackbar de error justo después del mensaje
+      // correcto "Pedido guardado localmente".
+      if (order.id == 0) {
+        return;
+      }
       // Stripe: pagar DENTRO de la app (WebView) con retorno automático.
       if (checkoutProvider.paymentMethod == 'STRIPE') {
         final session = await checkoutProvider.createStripeSession(order.id);

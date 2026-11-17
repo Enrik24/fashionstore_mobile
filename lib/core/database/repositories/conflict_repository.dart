@@ -12,7 +12,39 @@ class ConflictRepository extends TenantLocalRepository {
     String? datosCentral,
     String? accion,
     String estado = 'PENDIENTE',
-  }) {
+  }) async {
+    final ahora = DateTime.now().toUtc().toIso8601String();
+    // [FIX-SYNC] Un solo conflicto por operación: antes cada reintento
+    // insertaba una fila nueva y el contador de conflictos se inflaba sin
+    // límite (p. ej. "Conflictos: 2" para una única orden rechazada).
+    if (uuidOperacion != null && uuidOperacion.isNotEmpty) {
+      final existentes = await consultar(
+        'conflictos',
+        where: 'uuid_operacion = ? AND tenant_id = ?',
+        whereArgs: <Object?>[uuidOperacion, tenantId],
+        orderBy: 'id DESC',
+        limit: 1,
+      );
+      if (existentes.isNotEmpty) {
+        final id = (existentes.first['id'] as num).toInt();
+        await db.update(
+          'conflictos',
+          <String, Object?>{
+            'tipo': tipo,
+            'motivo': motivo,
+            'datos_local': datosLocal,
+            'datos_central': datosCentral,
+            'accion': accion,
+            'estado': estado,
+            'resuelto': estado == 'RESUELTO' ? 1 : 0,
+            'fecha_actualizacion': ahora,
+          },
+          where: 'id = ? AND tenant_id = ?',
+          whereArgs: <Object?>[id, tenantId],
+        );
+        return id;
+      }
+    }
     return db.insert('conflictos', <String, Object?>{
       'tenant_id': tenantId,
       'uuid_operacion': uuidOperacion,
@@ -23,9 +55,45 @@ class ConflictRepository extends TenantLocalRepository {
       'accion': accion,
       'estado': estado,
       'resuelto': estado == 'RESUELTO' ? 1 : 0,
-      'fecha_registro_local': DateTime.now().toUtc().toIso8601String(),
-      'fecha_actualizacion': DateTime.now().toUtc().toIso8601String(),
+      'fecha_registro_local': ahora,
+      'fecha_actualizacion': ahora,
     });
+  }
+
+  /// [FIX-SYNC] Elimina los duplicados heredados: por cada `uuid_operacion`
+  /// con varios conflictos sin resolver, conserva el más reciente.
+  Future<int> deduplicarPendientes() async {
+    final filas = await consultar(
+      'conflictos',
+      where: 'resuelto = 0 AND tenant_id = ? AND uuid_operacion IS NOT NULL',
+      whereArgs: <Object?>[tenantId],
+    );
+    final porUuid = <String, List<int>>{};
+    for (final fila in filas) {
+      final uuid = fila['uuid_operacion']?.toString() ?? '';
+      final id = (fila['id'] as num?)?.toInt();
+      if (uuid.isEmpty || id == null) continue;
+      porUuid.putIfAbsent(uuid, () => <int>[]).add(id);
+    }
+    var eliminados = 0;
+    for (final ids in porUuid.values) {
+      if (ids.length < 2) continue;
+      ids.sort();
+      for (final id in ids.sublist(0, ids.length - 1)) {
+        eliminados += await eliminar(id);
+      }
+    }
+    return eliminados;
+  }
+
+  /// [FIX-SYNC] Descarta los conflictos sin resolver de una operación que se
+  /// reactivó con el payload corregido: el conflicto original ya no aplica.
+  Future<int> descartarPorOperacion(String uuidOperacion) {
+    return db.delete(
+      'conflictos',
+      where: 'uuid_operacion = ? AND tenant_id = ? AND resuelto = 0',
+      whereArgs: <Object?>[uuidOperacion, tenantId],
+    );
   }
 
   Future<void> guardar(Map<String, Object?> conflicto) async {

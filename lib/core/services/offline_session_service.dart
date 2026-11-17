@@ -125,6 +125,19 @@ class OfflineSessionService {
     }
     await _storage.saveOfflineAttempts(0);
     _intentos = 0;
+    // [EXAMEN-2] B1.8.e: con red, el PIN **no** basta: se exige además que
+    // el token offline siga vigente en el backend. Antes el comentario decía
+    // "Si hay red, también exige un token vigente al backend" pero la
+    // comprobación no existía: un token revocado o caducado permitía
+    // operar offline hasta que expiraba el plazo local.
+    final vigente = await _tokenVigenteEnServidor();
+    if (vigente == false) {
+      throw ApiException(
+        message:
+            'Tu sesión offline ya no es válida. '
+            'Inicia sesión con conexión para volver a operar sin conexión.',
+      );
+    }
     // [EXAMEN-2] C1.2: PIN correcto pero sesión vencida => solo consulta (CU17 §12.1).
     // Si nunca tuvo expiración (null), se permite el primer acceso offline para
     // no romper flujo de alta; el enforcement real aplica tras iniciarSesiónRemota.
@@ -135,6 +148,27 @@ class OfflineSessionService {
       );
     }
     return true;
+  }
+
+  /// [EXAMEN-2] B1.8.e: comprueba el token offline contra el backend.
+  ///
+  /// Devuelve `null` si no se puede determinar (sin token, sin red o el
+  /// endpoint no está disponible): en ese caso no se bloquea al usuario.
+  Future<bool?> _tokenVigenteEnServidor() async {
+    final token = await _storage.readOfflineToken();
+    if (token == null || token.isEmpty) return null;
+    final client = _client;
+    try {
+      await client.get(AppConstants.epOfflineSesionEstado);
+      return true;
+    } on ApiException catch (error) {
+      final codigo = error.statusCode;
+      if (codigo == 401 || codigo == 403) return false;
+      return null;
+    } catch (_) {
+      // Sin red: no se puede validar; se sigue con el control local.
+      return null;
+    }
   }
 
   /// Canjea el PIN validado por un token offline del backend.
@@ -157,8 +191,15 @@ class OfflineSessionService {
       );
     }
     await _storage.saveOfflineToken(token);
-    await _storage.saveOfflineSessionExpiry(expira);
-    _expiraEn = expira;
+    // [EXAMEN-2] B1.1.d: el plazo offline lo fija el tenant
+    // (`max_horas_sesion_offline`). El backend ya lo aplica, pero el cliente
+    // lo usa como **techo local**: sin esa config el plazo hardcodeado de
+    // 12 h que devolvía el fallback podía dejar la sesión viva de más.
+    final limiteHoras = await _maxHorasSesionOffline();
+    final tope = DateTime.now().toUtc().add(Duration(hours: limiteHoras));
+    final expiraEfectiva = expira.isAfter(tope) ? tope : expira;
+    await _storage.saveOfflineSessionExpiry(expiraEfectiva);
+    _expiraEn = expiraEfectiva;
     final tenantId = (respuesta['tenant_id'] as num?)?.toInt() ?? 0;
     final usuarioId = (respuesta['usuario_id'] as num?)?.toInt() ?? 0;
     await _storage.saveLastTenant(tenantId);
@@ -181,8 +222,21 @@ class OfflineSessionService {
     return respuesta;
   }
 
-  Future<bool> renovarToken() async {
-    final token = await _storage.readOfflineToken();
+  /// [EXAMEN-2] B1.1.d: plazo máximo de sesión offline según el tenant.
+  /// Si no hay configuración local se usa el valor por defecto (12 h).
+  Future<int> _maxHorasSesionOffline() async {
+    final repo = _configRepository;
+    if (repo == null) return 12;
+    try {
+      final config = await repo.leer(_storage.readLastTenant() ?? 0);
+      final horas = config?.maxHorasSesionOffline ?? 12;
+      return horas > 0 ? horas : 12;
+    } catch (_) {
+      return 12;
+    }
+  }
+
+  Future<bool> renovarToken() async {    final token = await _storage.readOfflineToken();
     if (token == null || token.isEmpty) return false;
     try {
       final data = await _client.post(
@@ -247,6 +301,8 @@ class OfflineSessionService {
       return _map(await _client.get(AppConstants.epOfflineSesionEstado));
     } on ApiException catch (error) {
       if (error.statusCode == 404) {
+        // [EXAMEN-2] B1.1.d: el plazo del tenant, no un 12 fijo.
+        final limiteHoras = await _maxHorasSesionOffline();
         return <String, dynamic>{
           'usuario_id': 0,
           'tenant_id': _storage.readLastTenant() ?? 0,
@@ -254,7 +310,7 @@ class OfflineSessionService {
           'pin_configurado': pinConfigurado,
           'dispositivo_activo': true,
           'intentos_restantes': intentosRestantes,
-          'max_horas_sesion_offline': 12,
+          'max_horas_sesion_offline': limiteHoras,
         };
       }
       rethrow;

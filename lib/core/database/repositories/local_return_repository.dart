@@ -11,7 +11,7 @@ import 'local_operation_repository.dart';
 /// sin salida); la reposición mueve inventario en dos sentidos en una sola
 /// transacción SQLite (RN-025: `REPOSICION_ENTRADA` + `REPOSICION_SALIDA`).
 class LocalReturnRepository extends LocalOperationRepository {
-  LocalReturnRepository(super.db, {required super.tenantId})
+  LocalReturnRepository(super.db, {required super.tenantId, super.usuarioId})
     : super(
         tablaCabecera: 'devoluciones_locales',
         columnaUuid: 'uuid_offline',
@@ -22,13 +22,18 @@ class LocalReturnRepository extends LocalOperationRepository {
   ///
   /// [movimientosStock] se aplica dentro de la misma transacción:
   /// `+cantidad` para entrada (prenda devuelta) y `-cantidad` para salida
-  /// (prenda nueva). La reserva provisional (`cantidad_reservada`) también se
-  /// libera en la misma transacción.
+  /// (prenda nueva). La reserva provisional (`cantidad_reservada`) se
+  /// **incrementa** para la prenda nueva y se **libera** para la devuelta
+  /// (RN-025 / B0.3.b). Cada movimiento queda registrado en el libro
+  /// `movimientos_inventario` (v5, RN-021/RNF-21).
   Future<void> registrar({
     required String uuid,
     required Map<String, Object?> cabecera,
     required List<Map<String, Object?>> items,
-    List<({int varianteId, int delta, int deltaReserva})> movimientosStock =
+    List<({int varianteId, int delta, int deltaReserva, String tipo})>
+    movimientosStock = const [],
+    // [EXAMEN-2] B1.10.i: cobro de la diferencia de precio (o saldo a favor).
+    List<({int varianteId, double monto, String medioPago})> movimientosPago =
         const [],
     required int sucursalId,
   }) async {
@@ -37,6 +42,8 @@ class LocalReturnRepository extends LocalOperationRepository {
         ...cabecera,
         'uuid_offline': uuid,
         'tenant_id': tenantId,
+        // [EXAMEN-2] B0.4: usuario que originó la operación.
+        'usuario_id': cabecera['usuario_id'] ?? usuarioId,
         'sucursal_id': sucursalId,
         'fecha_registro_local':
             cabecera['fecha_registro_local'] ??
@@ -48,6 +55,7 @@ class LocalReturnRepository extends LocalOperationRepository {
           ...item,
           'uuid_offline': uuid,
           'tenant_id': tenantId,
+          'usuario_id': item['usuario_id'] ?? usuarioId,
           'fecha_actualizacion': DateTime.now().toUtc().toIso8601String(),
         });
       }
@@ -66,27 +74,61 @@ class LocalReturnRepository extends LocalOperationRepository {
               'tenant_id': tenantId,
               'cantidad': movimiento.delta,
               'cantidad_reservada': 0,
+              'cantidad_no_confirmada': 0,
               'stock_minimo': 0,
               'fecha_actualizacion':
                   DateTime.now().toUtc().toIso8601String(),
             });
           }
-          continue;
+        } else {
+          final actual = (filas.first['cantidad'] as num?)?.toInt() ?? 0;
+          final reservada =
+              (filas.first['cantidad_reservada'] as num?)?.toInt() ?? 0;
+          await executor.update(
+            'stock',
+            <String, Object?>{
+              'cantidad': (actual + movimiento.delta).clamp(0, 1 << 30),
+              'cantidad_reservada': (reservada + movimiento.deltaReserva)
+                  .clamp(0, 1 << 30),
+              'fecha_actualizacion': DateTime.now().toUtc().toIso8601String(),
+            },
+            where: 'variante_id = ? AND sucursal_id = ? AND tenant_id = ?',
+            whereArgs: <Object?>[movimiento.varianteId, sucursalId, tenantId],
+          );
         }
-        final actual = (filas.first['cantidad'] as num?)?.toInt() ?? 0;
-        final reservada =
-            (filas.first['cantidad_reservada'] as num?)?.toInt() ?? 0;
-        await executor.update(
-          'stock',
-          <String, Object?>{
-            'cantidad': (actual + movimiento.delta).clamp(0, 1 << 30),
-            'cantidad_reservada': (reservada + movimiento.deltaReserva)
-                .clamp(0, 1 << 30),
-            'fecha_actualizacion': DateTime.now().toUtc().toIso8601String(),
-          },
-          where: 'variante_id = ? AND sucursal_id = ? AND tenant_id = ?',
-          whereArgs: <Object?>[movimiento.varianteId, sucursalId, tenantId],
-        );
+        // [EXAMEN-2] v5 / RN-021: libro de movimientos local. Da trazabilidad
+        // offline de qué variante entró o salió y por qué (DEVOLUCION /
+        // REPOSICION_ENTRADA / REPOSICION_SALIDA).
+        await executor.insert('movimientos_inventario', <String, Object?>{
+          'uuid_offline': uuid,
+          'tenant_id': tenantId,
+          'usuario_id': usuarioId,
+          'sucursal_id': sucursalId,
+          'tipo': movimiento.tipo,
+          'variante_producto_id': movimiento.varianteId,
+          'cantidad': movimiento.delta.abs(),
+          'cantidad_no_confirmada': 0,
+          'motivo': cabecera['motivo']?.toString(),
+          'fecha_registro_local': DateTime.now().toUtc().toIso8601String(),
+          'fecha_actualizacion': DateTime.now().toUtc().toIso8601String(),
+        });
+      }
+      // [EXAMEN-2] B1.10.i: el cobro de la diferencia (o el saldo a favor)
+      // queda registrado en el libro de movimientos para trazabilidad.
+      for (final pago in movimientosPago) {
+        await executor.insert('movimientos_inventario', <String, Object?>{
+          'uuid_offline': uuid,
+          'tenant_id': tenantId,
+          'usuario_id': usuarioId,
+          'sucursal_id': sucursalId,
+          'tipo': 'COBRO_DIFERENCIA',
+          'variante_producto_id': pago.varianteId,
+          'cantidad': 0,
+          'cantidad_no_confirmada': 0,
+          'motivo': 'Diferencia de precio · ${pago.medioPago}',
+          'fecha_registro_local': DateTime.now().toUtc().toIso8601String(),
+          'fecha_actualizacion': DateTime.now().toUtc().toIso8601String(),
+        });
       }
     }
 

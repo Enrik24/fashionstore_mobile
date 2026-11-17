@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../models/return_request_model.dart';
 import '../services/pos_service.dart';
+import '../services/pos_sesion_service.dart';
 import '../services/return_service.dart';
 
 /// Línea seleccionada por el cajero (prenda devuelta / prenda nueva).
@@ -45,11 +46,19 @@ class OfflineReturnProvider extends ChangeNotifier {
   OfflineReturnProvider({
     required ReturnService returnService,
     PosService? posService,
+    // [EXAMEN-2] CU13/CU18: sucursal de la sesión (sin sucursalId fija).
+    PosSesionService? sesion,
   }) : _returnService = returnService,
-       _posService = posService;
+       _posService = posService,
+       _sesion = sesion;
 
   final ReturnService _returnService;
   final PosService? _posService;
+  final PosSesionService? _sesion;
+
+  /// [EXAMEN-2] CU13/CU18: sucursal de la sesión para operaciones offline.
+  Future<int> resolverSucursalId() =>
+      _sesion?.resolverSucursalId() ?? Future.value(0);
 
   Map<String, Object?>? _ventaOriginal;
   bool _plazoValido = false;
@@ -62,6 +71,9 @@ class OfflineReturnProvider extends ChangeNotifier {
   bool _loading = false;
   String? _error;
   bool _sinAlternativa = false;
+  // [EXAMEN-2] B0.1: motivo y medio de reembolso seleccionados por el cajero.
+  String _motivo = MotivosDevolucion.tallaIncorrecta;
+  String _medioReembolso = 'REEMBOLSO';
 
   Map<String, Object?>? get ventaOriginal => _ventaOriginal;
   bool get plazoValido => _plazoValido;
@@ -78,12 +90,53 @@ class OfflineReturnProvider extends ChangeNotifier {
   String? get errorMessage => _error;
   bool get sinAlternativa => _sinAlternativa;
 
+  /// [EXAMEN-2] B0.1: motivo de la devolución/reposición.
+  String get motivo => _motivo;
+
+  /// [EXAMEN-2] B0.1: medio de reembolso (`REEMBOLSO` o `SALDO_FAVOR`).
+  String get medioReembolso => _medioReembolso;
+
+  /// [EXAMEN-2] B0.1: las prendas de la venta original, para que el cajero
+  /// elija cuáles devuelve sin teclear identificadores a mano.
+  List<Map<String, Object?>> get itemsVentaOriginal {
+    final items = _ventaOriginal?['items'];
+    if (items is List) {
+      return items
+          .whereType<Map>()
+          .map((e) => Map<String, Object?>.from(e))
+          .toList(growable: false);
+    }
+    return const <Map<String, Object?>>[];
+  }
+
+  /// [EXAMEN-2] B0.1: total a reembolsar de las prendas seleccionadas.
+  double get totalReembolso => _items.fold<double>(
+    0,
+    (sum, e) => sum + e.precioUnitario * e.cantidad,
+  );
+
+  /// [EXAMEN-2] B0.1: hay al menos una prenda seleccionada.
+  bool get tieneSeleccion => _items.isNotEmpty;
+
+  /// [EXAMEN-2] B0.1: fecha límite de la venta original (RN-012).
+  DateTime? get fechaLimiteVenta {
+    final texto = _ventaOriginal?['fecha_limite_cambio']?.toString();
+    if (texto == null || texto.isEmpty) return null;
+    return DateTime.tryParse(texto);
+  }
+
   /// Fija la venta original y evalúa el plazo RN-012.
   void setVentaOriginal(
     Map<String, Object?>? venta, {
     DateTime? fechaLimite,
   }) {
     _ventaOriginal = venta;
+    // [EXAMEN-2] B0.1: al buscar otra venta, la selección previa se
+    // descarta (las prendas pertenecen a la venta buscada).
+    _items.clear();
+    _alternativas = const [];
+    _sinAlternativa = false;
+    _recalcular();
     if (fechaLimite == null) {
       _plazoValido = true;
     } else {
@@ -99,13 +152,85 @@ class OfflineReturnProvider extends ChangeNotifier {
   }
 
   void agregarItem(LineaSeleccion linea) {
+    _items.removeWhere(
+      (e) =>
+          e.varianteProductoId == linea.varianteProductoId &&
+          e.varianteCambioId == linea.varianteCambioId,
+    );
     _items.add(linea);
     _recalcular();
     notifyListeners();
   }
 
+  /// [EXAMEN-2] B0.1: quita una prenda de la selección.
+  void quitarItem(int varianteProductoId, {int? varianteCambioId}) {
+    _items.removeWhere(
+      (e) =>
+          e.varianteProductoId == varianteProductoId &&
+          (varianteCambioId == null || e.varianteCambioId == varianteCambioId),
+    );
+    _recalcular();
+    notifyListeners();
+  }
+
+  /// [EXAMEN-2] B0.1: cambia la cantidad de una prenda seleccionada.
+  void setCantidadItem(int varianteProductoId, int cantidad, {int? varianteCambioId}) {
+    final indice = _items.indexWhere(
+      (e) =>
+          e.varianteProductoId == varianteProductoId &&
+          (varianteCambioId == null || e.varianteCambioId == varianteCambioId),
+    );
+    if (indice < 0) return;
+    final actual = _items[indice];
+    if (cantidad <= 0) {
+      _items.removeAt(indice);
+    } else {
+      _items[indice] = LineaSeleccion(
+        varianteProductoId: actual.varianteProductoId,
+        productoId: actual.productoId,
+        productoNombre: actual.productoNombre,
+        cantidad: cantidad,
+        precioUnitario: actual.precioUnitario,
+        varianteCambioId: actual.varianteCambioId,
+        precioVarianteNueva: actual.precioVarianteNueva,
+        detalleOrdenId: actual.detalleOrdenId,
+      );
+    }
+    _recalcular();
+    notifyListeners();
+  }
+
+  /// [EXAMEN-2] B0.1: motivo elegido por el cajero.
+  void setMotivo(String motivo) {
+    _motivo = motivo;
+    notifyListeners();
+  }
+
+  /// [EXAMEN-2] B0.1: medio de reembolso elegido por el cajero.
+  void setMedioReembolso(String medio) {
+    _medioReembolso = medio;
+    notifyListeners();
+  }
+
   void limpiarItems() {
     _items.clear();
+    _recalcular();
+    notifyListeners();
+  }
+
+  /// [EXAMEN-2] B0.1.h: reinicia el estado compartido del provider al
+  /// entrar a una pantalla de postventa (evita que las líneas agregadas en
+  /// reposición se filtren a la devolución y viceversa).
+  void reiniciarOperacion() {
+    _items.clear();
+    _ventaOriginal = null;
+    _plazoValido = false;
+    _alternativas = const [];
+    _sinAlternativa = false;
+    _error = null;
+    _ultimaSolicitud = null;
+    _motivo = MotivosDevolucion.tallaIncorrecta;
+    _medioReembolso = 'REEMBOLSO';
     _recalcular();
     notifyListeners();
   }
@@ -123,9 +248,12 @@ class OfflineReturnProvider extends ChangeNotifier {
   Future<ReturnRequestModel?> confirmarDevolucionOffline({
     required String numeroComprobanteOrigen,
     required int sucursalId,
-    String motivo = MotivosDevolucion.tallaIncorrecta,
-    bool saldoFavor = false,
+    // [EXAMEN-2] B0.1.e: si no se pasa, se usa el motivo seleccionado.
+    String? motivo,
+    bool? saldoFavor,
     DateTime? fechaCambioLimite,
+    // [EXAMEN-2] B2.4: notificar al cliente la falta de alternativa de talla.
+    bool notificarAlternativa = false,
   }) async {
     _loading = true;
     _error = null;
@@ -134,10 +262,15 @@ class OfflineReturnProvider extends ChangeNotifier {
       _ultimaSolicitud = await _returnService.crearDevolucionOffline(
         numeroComprobanteOrigen: numeroComprobanteOrigen,
         sucursalId: sucursalId,
-        motivo: motivo,
+        motivo: motivo ?? _motivo,
         items: _items.map((e) => e.toLineaDevolucion()).toList(),
-        saldoFavor: saldoFavor,
-        fechaCambioLimite: fechaCambioLimite,
+        // [EXAMEN-2] B0.1.f: el medio de reembolso elegido en la UI.
+        saldoFavor: saldoFavor ?? (_medioReembolso == 'SALDO_FAVOR'),
+        // [EXAMEN-2] B0.1.g: la fecha límite viene de la venta original; sin
+        // ella el guard RN-012 del servicio queda inerte.
+        fechaCambioLimite: fechaCambioLimite ?? fechaLimiteVenta,
+        // [EXAMEN-2] B2.4: el backend notificara la falta de alternativa.
+        notificarAlternativa: notificarAlternativa,
       );
       return _ultimaSolicitud;
     } catch (e) {
@@ -153,8 +286,12 @@ class OfflineReturnProvider extends ChangeNotifier {
   Future<ReturnRequestModel?> confirmarReposicionOffline({
     required String numeroComprobanteOrigen,
     required int sucursalId,
-    String motivo = MotivosDevolucion.tallaIncorrecta,
+    // [EXAMEN-2] B1.10.e: motivo seleccionado por el cajero.
+    String? motivo,
     DateTime? fechaCambioLimite,
+    // [EXAMEN-2] B1.10.h: medio de pago de la diferencia (offline ⇒ efectivo).
+    String metodoPagoDiferencia = 'EFECTIVO',
+    bool offline = false,
   }) async {
     _loading = true;
     _error = null;
@@ -164,9 +301,12 @@ class OfflineReturnProvider extends ChangeNotifier {
       _ultimaSolicitud = await _returnService.crearReposicionOffline(
         numeroComprobanteOrigen: numeroComprobanteOrigen,
         sucursalId: sucursalId,
-        motivo: motivo,
+        motivo: motivo ?? _motivo,
         items: _items.map((e) => e.toLineaDevolucion()).toList(),
-        fechaCambioLimite: fechaCambioLimite,
+        // [EXAMEN-2] B0.1.g: fecha límite de la venta original (RN-012).
+        fechaCambioLimite: fechaCambioLimite ?? fechaLimiteVenta,
+        metodoPagoDiferencia: metodoPagoDiferencia,
+        offline: offline,
       );
       return _ultimaSolicitud;
     } catch (e) {
@@ -226,4 +366,9 @@ class OfflineReturnProvider extends ChangeNotifier {
   /// Alias de la búsqueda de alternativas por talla.
   Future<void> buscarAlternativa(int varianteId, {int? sucursalId}) =>
       buscarAlternativaTalla(varianteId: varianteId, sucursalId: sucursalId);
+
+  /// [EXAMEN-2] B0.3.c: producto de una variante en el catálogo local, para
+  /// activar la validación de "misma prenda" (CU18).
+  Future<int?> productoIdDeVariante(int varianteId) =>
+      _returnService.productoIdDeVarianteLocal(varianteId);
 }

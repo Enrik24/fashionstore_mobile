@@ -12,6 +12,11 @@ class ApiService {
 
   /// [EXAMEN-2] Callback para reaccionar a revocación de dispositivo (CU17).
   Future<void> Function()? onDeviceRevoked;
+  // [EXAMEN-2] RN-019: un 403 "Dispositivo no registrado" no es una
+  // revocación real, es una brecha de alta del UUID local (recuperable).
+  // El hook intenta registrar el dispositivo; si devuelve true se reintenta
+  // la petición original una sola vez.
+  Future<bool> Function()? onRegistrarDispositivo;
 
   ApiService({required this.storageService}) {
     dio = Dio(
@@ -20,6 +25,7 @@ class ApiService {
         connectTimeout: const Duration(
           seconds: AppConfig.connectTimeoutSeconds,
         ),
+        sendTimeout: const Duration(seconds: AppConfig.connectTimeoutSeconds),
         receiveTimeout: const Duration(
           seconds: AppConfig.receiveTimeoutSeconds,
         ),
@@ -52,14 +58,45 @@ class ApiService {
         },
         onError: (DioException error, handler) async {
           // [EXAMEN-2] Un dispositivo revocado invalida la sesión local.
-          final detail = error.response?.data is Map<String, dynamic>
-              ? (error.response!.data['detail'] ??
-                        error.response!.data['codigo'] ??
-                        '')
-                    .toString()
-              : '';
+          final cuerpo = error.response?.data is Map<String, dynamic>
+              ? error.response!.data as Map<String, dynamic>
+              : const <String, dynamic>{};
+          final detail = (cuerpo['detail'] ?? cuerpo['codigo'] ?? '').toString();
+          final mensaje = (cuerpo['mensaje'] ?? '').toString();
           if (error.response?.statusCode == 403 &&
               detail.contains('DISPOSITIVO_REVOCADO')) {
+            // [EXAMEN-2] RN-019: el backend usa el mismo código para una
+            // revocación real ("El dispositivo fue revocado") y para un
+            // dispositivo que nunca se registró ("Dispositivo no
+            // registrado"). Solo la primera debe borrar datos; la segunda
+            // se repara registrando el dispositivo y reintentando una vez.
+            final yaReintento =
+                error.requestOptions.headers['X-Reg-Dispositivo'] == '1';
+            final noRegistrado = mensaje.toLowerCase().contains(
+              'no registrado',
+            );
+            if (noRegistrado && !yaReintento) {
+              var registrado = false;
+              try {
+                registrado = await onRegistrarDispositivo?.call() ?? false;
+              } catch (_) {
+                registrado = false;
+              }
+              if (registrado) {
+                try {
+                  final opciones = error.requestOptions
+                    ..headers['X-Reg-Dispositivo'] = '1';
+                  final respuesta = await dio.fetch(opciones);
+                  return handler.resolve(respuesta);
+                } on DioException catch (e) {
+                  return handler.next(e);
+                }
+              }
+              // No se pudo confirmar el registro (p.ej. red inestable): no
+              // se borra nada; el error se propaga y el motor de sync
+              // reintentará más tarde.
+              return handler.next(error);
+            }
             await onDeviceRevoked?.call();
           }
           // If 401 Unauthorized, try refresh token once
@@ -148,8 +185,32 @@ class ApiService {
           requestPath.contains('/pagos/pendientes') ||
           requestPath.contains('/devoluciones/');
       if ((statusCode == 404 || statusCode == 501) && esNuevo) {
-        message =
-            'Esta función aún no está disponible en el servidor. Tu operación quedó guardada.';
+        // [EXAMEN-2] Se distingue un 404 de negocio ("pago/orden no
+        // encontrada": aún no sincronizada) de un endpoint no desplegado.
+        // Antes ambos mostraban "función no disponible", lo que ocultaba
+        // la acción real: sincronizar.
+        final cuerpo = data is Map<String, dynamic> ? data : null;
+        final codigoNegocio = (cuerpo?['codigo'] ?? '').toString().toUpperCase();
+        final mensajeNegocio = (cuerpo?['mensaje'] ?? '')
+            .toString()
+            .toLowerCase();
+        // [FIX-SYNC] NotFoundException del backend viaja como HTTPException
+        // plano: {"detail": "Pago diferido no encontrado"} (sin codigo ni
+        // mensaje). Leer también `detail` evita mostrar "función no
+        // disponible" cuando lo que falta es sincronizar la operación.
+        final detailNegocio = (cuerpo?['detail'] is String ? cuerpo!['detail'] : '')
+            .toString()
+            .toLowerCase();
+        final esNegocioNoEncontrado =
+            codigoNegocio == 'RECURSO_NO_ENCONTRADO' ||
+            mensajeNegocio.contains('no encontrado') ||
+            detailNegocio.contains('no encontrado');
+        message = esNegocioNoEncontrado
+            ? 'Aún no existe en el servidor. Sincroniza tus operaciones '
+                'pendientes e inténtalo de nuevo (tu operación quedó '
+                'guardada en el dispositivo).'
+            : 'Esta función aún no está disponible en el servidor. Tu '
+                'operación quedó guardada.';
       } else if (statusCode == 401 || statusCode == 403) {
         final detail = data is Map<String, dynamic>
             ? (data['detail'] ?? data['codigo'] ?? '').toString().toUpperCase()
@@ -171,8 +232,7 @@ class ApiService {
           message =
               'La suscripción de la empresa no está activa. La operación quedó pendiente de regularización.';
         } else if (detail.contains('PAGO_DIFERIDO_NO_DISPONIBLE')) {
-          message =
-              'El pago diferido no está disponible para esta empresa.';
+          message = 'El pago diferido no está disponible para esta empresa.';
         } else if (detail.contains('LIMITE_PLAN_EXCEDIDO')) {
           message = 'Se excedió el límite del plan contratado.';
         }
@@ -183,8 +243,7 @@ class ApiService {
             .toString()
             .toUpperCase();
         if (detail.contains('PAGO_DIFERIDO_NO_DISPONIBLE')) {
-          message =
-              'El pago diferido no está disponible para esta empresa.';
+          message = 'El pago diferido no está disponible para esta empresa.';
         } else if (detail.contains('LIMITE_PLAN_EXCEDIDO')) {
           message = 'Se excedió el límite del plan contratado.';
         }

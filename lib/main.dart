@@ -56,6 +56,8 @@ import 'core/services/sync_engine_service.dart';
 import 'core/services/conflict_service.dart';
 import 'core/services/pending_payment_service.dart';
 import 'core/services/pos_service.dart';
+// [EXAMEN-2] CU07/CU13/CU18: sucursal y cajero de la sesión para POS.
+import 'core/services/pos_sesion_service.dart';
 import 'core/services/realtime_service.dart';
 import 'core/services/storage_quota_service.dart';
 import 'core/providers/offline_catalog_provider.dart';
@@ -104,8 +106,11 @@ void main() async {
   );
   try {
     await localDatabaseService.abrir();
-  } catch (_) {
-    // La app online continÃºa aunque el dispositivo no permita abrir SQLCipher.
+  } catch (error) {
+    // La app online continúa, pero el error queda disponible para que la UI
+    // offline pueda explicar por qué no puede leer o guardar el paquete.
+    await localDatabaseService.cerrar();
+    localDatabaseService.registrarErrorApertura(error);
   }
   final deviceService = DeviceService(
     storageService: storageService,
@@ -160,6 +165,18 @@ void main() async {
     localDatabase: localDatabaseService,
   );
   apiService.onDeviceRevoked = notificationService.handleDeviceRevoked;
+  // [EXAMEN-2] RN-019: si /offline/* responde "Dispositivo no registrado",
+  // el interceptor intenta dar de alta el UUID local y reintentar una vez,
+  // en lugar de borrar la sesión. Cubre instalaciones que iniciaron sesión
+  // antes de que el alta automática existiera.
+  apiService.onRegistrarDispositivo = () async {
+    try {
+      await deviceService.registrar();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  };
   try {
     await notificationService.init();
   } catch (_) {}
@@ -175,10 +192,14 @@ void main() async {
         storageService.readLastTenant() ??
         1,
   );
+  // [EXAMEN-2] B0.4: el id del usuario debe quedar en TODA operación offline
+  // (CU17 exige tenant_id + usuario_id + dispositivo_id + uuid_operacion).
+  final usuarioId = storageService.getUser()?.id ?? 0;
   final offlineQueueService = OfflineQueueService(
     database: localDatabaseService,
     tenantId: tenantId,
     dispositivoId: dispositivoId,
+    usuarioId: usuarioId > 0 ? usuarioId : null,
   );
   final offlineCatalogService = OfflineCatalogService(
     database: localDatabaseService,
@@ -186,6 +207,12 @@ void main() async {
     client: offlineClient,
   );
   late final OfflineCartService offlineCartService;
+  // [EXAMEN-2] B1.2.a: el servicio de documentos se crea antes para poder
+  // inyectarlo en el servicio de reservas (comprobante temporal de CU06).
+  final offlineDocumentService = OfflineDocumentService(
+    database: localDatabaseService,
+    tenantId: tenantId,
+  );
   catalogService = CatalogService(
     apiService: apiService,
     offline: offlineCatalogService,
@@ -195,6 +222,14 @@ void main() async {
     database: localDatabaseService,
     tenantId: tenantId,
     queue: offlineQueueService,
+    // [EXAMEN-2] B0.4: el usuario queda estampado en cada fila local.
+    usuarioId: usuarioId > 0 ? usuarioId : null,
+    // [EXAMEN-2] B1.2.a: genera el comprobante temporal de la reserva offline.
+    documents: offlineDocumentService,
+  );
+  final storageQuotaService = StorageQuotaService(
+    database: localDatabaseService,
+    tenantId: tenantId,
   );
   final syncEngineService = SyncEngineService(
     queue: offlineQueueService,
@@ -203,6 +238,8 @@ void main() async {
     audit: localAuditService,
     tenantId: tenantId,
     dispositivoId: dispositivoId,
+    // [EXAMEN-2] B1.5.i: limpieza de datos sincronizados y obsoletos.
+    quotaService: storageQuotaService,
   );
   final conflictService = ConflictService(
     database: localDatabaseService,
@@ -214,6 +251,8 @@ void main() async {
     tenantId: tenantId,
     client: offlineClient,
     audit: localAuditService,
+    // [EXAMEN-2] B0.4.
+    usuarioId: usuarioId > 0 ? usuarioId : null,
   );
   offlineCartService = OfflineCartService(
     database: localDatabaseService,
@@ -222,11 +261,40 @@ void main() async {
     client: offlineClient,
     queue: offlineQueueService,
     pendingPayments: pendingPaymentService,
+    // [EXAMEN-2] B0.4.
+    usuarioId: usuarioId > 0 ? usuarioId : null,
   );
+  // [EXAMEN-2] B1.1.d: configuración del tenant para la vigencia de la orden
+  // pendiente y la tasa de impuestos.
+  offlineCartService.configurarRepositorioConfig(localConfigRepository);
   cartService = CartService(
     apiService: apiService,
     offline: offlineCartService,
     catalog: offlineCatalogService,
+  );
+  // [EXAMEN-2] C2.5 (§7.6) CU15: la bandera remota alimenta la guarda del
+  // carrito offline; si la consulta falla se usa la copia local respaldada
+  // en la tabla `configuracion` (OfflineConfigService).
+  unawaited(
+    offlineConfigService
+        .obtenerConfiguracion(tenantId)
+        .then((config) {
+          cartService.habilitarCarritoOffline = config.habilitarCarritoOffline;
+          // [EXAMEN-2] B2.1: si el tenant publicó su propia clave **pública**
+          // de Stripe en el paquete offline, se usa esa (la de compilación es
+          // sólo el valor por defecto de desarrollo). Nunca se persiste la
+          // clave secreta (RNF-15).
+          final clave = config.clavePublicaStripe;
+          if (clave != null && clave.isNotEmpty) {
+            Stripe.publishableKey = clave;
+          }
+          // [EXAMEN-2] B1.1.e: descarga automática del catálogo a la hora que
+          // fija el tenant (`descarga_automatica` + `hora_descarga`).
+          offlineCatalogService.programarDescargaAutomatica(config);
+        })
+        .catchError((Object _) {
+          // Sin red: se respeta la copia local (valor por defecto true).
+        }),
   );
 
   // [EXAMEN-2] Fase 3 (CU13/CU18/CU19): crear offline con base local y cola.
@@ -236,18 +304,31 @@ void main() async {
     tenantId: tenantId,
     queue: offlineQueueService,
     audit: localAuditService,
+    // [EXAMEN-2] B0.4.
+    usuarioId: usuarioId > 0 ? usuarioId : null,
   );
   compensationService = CompensationService(
     database: localDatabaseService,
     tenantId: tenantId,
     apiService: apiService,
     audit: localAuditService,
+    // [EXAMEN-2] B0.4.
+    usuarioId: usuarioId > 0 ? usuarioId : null,
   );
   final posService = PosService(
     database: localDatabaseService,
     tenantId: tenantId,
     queue: offlineQueueService,
     apiService: apiService,
+    // [EXAMEN-2] B0.4.
+    usuarioId: usuarioId > 0 ? usuarioId : null,
+  );
+  // [EXAMEN-2] CU07/CU13/CU18: sucursal y cajero resueltos de la sesión
+  // (persistencia + fallback al paquete offline descargado).
+  final posSesionService = PosSesionService(
+    database: localDatabaseService,
+    storage: storageService,
+    tenantId: tenantId,
   );
   // [EXAMEN-2] Fase 3 (CU19): aviso cuando el guarda de rol devuelve a /home.
   RolCajeroRedirect.onAviso = (mensaje) {
@@ -255,15 +336,53 @@ void main() async {
       SnackBar(content: Text(mensaje)),
     );
   };
-  final storageQuotaService = StorageQuotaService(
-    database: localDatabaseService,
-    tenantId: tenantId,
+  // [EXAMEN-2] CU05/RNF-14: la descarga del paquete respeta la cuota local.
+  offlineCatalogService.configurarQuota(storageQuotaService);
+  // [EXAMEN-2] B1.1: el paquete offline trae `impuestos`, `stripe`,
+  // `permisos` y `configuracion_offline`; el servicio los persiste.
+  offlineCatalogService.configurarRepositorios(
+    config: localConfigRepository,
+    permissions: localPermissionsRepository,
   );
-  final offlineDocumentService = OfflineDocumentService(
-    database: localDatabaseService,
-    tenantId: tenantId,
-  );
+  // [FIX-SYNC] Normaliza las órdenes diferidas heredadas (payload con
+  // `acepta_nuevo_total: false`) y deduplica los conflictos que dejaron los
+  // reintentos en bucle, antes de habilitar los disparadores de sync.
+  try {
+    await offlineQueueService.normalizarOrdenesDiferidas();
+  } catch (_) {
+    // Best-effort: no bloquea el arranque.
+  }
+  // [FIX-SYNC] Al terminar cada sincronización (incluida la que dispara la
+  // reconexión) se reenvían los pagos diferidos locales aún no creados en el
+  // servidor y se refresca su estado.
+  syncEngineService.reenviarPagosLocales =
+      pendingPaymentService.reenviarPendientesLocales;
   await syncEngineService.registrarDisparadores();
+  // [EXAMEN-2] B1.7.a: job de expiración de los pagos diferidos (RN-016).
+  pendingPaymentService.programarExpiracion();
+  // [EXAMEN-2] B1.4.d: el resultado de la sincronización se aplica también a
+  // la fila local del dominio (devoluciones/reposiciones).
+  offlineQueueService.aplicarResultadoDominio =
+      (uuidOperacion, estado, detalle) async {
+        // [EXAMEN-2] B2.4: si el servidor rechazó la reposición por falta de
+        // talla alternativa, se le pide que notifique al cliente (RN-022/RN-024).
+        final solicitudId =
+            (detalle?['solicitud_id'] as num?)?.toInt() ??
+            (detalle?['id_solicitud'] as num?)?.toInt();
+        if (solicitudId != null && solicitudId > 0) {
+          final motivo = detalle?['motivo']?.toString() ?? '';
+          if (estado.toUpperCase().contains('SIN_ALTERNATIVA') ||
+              motivo.toUpperCase().contains('SIN_ALTERNATIVA')) {
+            await returnService.notificarSinAlternativa(solicitudId);
+          }
+        }
+        await returnService.aplicarResultadoSync(
+          uuidOffline: uuidOperacion,
+          estado: estado,
+          estadoSincronizacion: estado,
+          numeroReposicion: detalle?['numero_reposicion']?.toString(),
+        );
+      };
 
   runApp(
     MultiProvider(
@@ -301,6 +420,7 @@ void main() async {
         Provider<ConflictService>.value(value: conflictService),
         Provider<PendingPaymentService>.value(value: pendingPaymentService),
         Provider<PosService>.value(value: posService),
+        Provider<PosSesionService>.value(value: posSesionService),
         Provider<StorageQuotaService>.value(value: storageQuotaService),
         Provider<OfflineDocumentService>.value(value: offlineDocumentService),
         Provider<RealtimeService>.value(value: realtimeService),
@@ -322,6 +442,7 @@ void main() async {
             cartProvider: context.read<CartProvider>(),
             favoritesProvider: context.read<FavoritesProvider>(),
             notificationService: notificationService,
+            deviceService: deviceService,
           ),
         ),
         ChangeNotifierProvider<CatalogProvider>(
@@ -364,8 +485,11 @@ void main() async {
         ),
         ChangeNotifierProvider<OfflineCatalogProvider>(
           create: (_) =>
-              OfflineCatalogProvider(service: offlineCatalogService)
-                ..cargarLocal(),
+              OfflineCatalogProvider(
+                service: offlineCatalogService,
+                // [EXAMEN-2] B1.1.j: el sello de descarga se persiste.
+                storageService: storageService,
+              )..cargarLocal(),
         ),
         ChangeNotifierProvider<SyncProvider>(
           create: (_) =>
@@ -382,6 +506,7 @@ void main() async {
           create: (_) => PosProvider(
             service: posService,
             documentService: offlineDocumentService,
+            sesion: posSesionService,
           ),
         ),
         // [EXAMEN-2] Fase 3 (CU13/CU18/CU19): devoluciones, reposiciones y
@@ -391,6 +516,7 @@ void main() async {
           create: (_) => OfflineReturnProvider(
             returnService: returnService,
             posService: posService,
+            sesion: posSesionService,
           ),
         ),
         ChangeNotifierProvider<CompensationProvider>(
@@ -432,7 +558,8 @@ class _FashionStoreAppState extends State<FashionStoreApp>
   void _actualizarRolCajero() {
     if (!mounted) return;
     final auth = context.read<AuthProvider>();
-    final roles = auth.currentUser?.roles
+    final roles =
+        auth.currentUser?.roles
             .map((rol) => rol.nombre.toLowerCase())
             .toSet() ??
         const <String>{};

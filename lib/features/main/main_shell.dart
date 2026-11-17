@@ -6,8 +6,8 @@ import '../../core/providers/cart_provider.dart';
 import '../../core/providers/conflict_provider.dart';
 import '../../core/providers/pending_payment_provider.dart';
 import '../../core/providers/sync_provider.dart';
+import '../../core/widgets/offline_data_stamp.dart';
 import '../offline/widgets/sync_status_banner.dart';
-import '../offline/widgets/offline_data_stamp.dart';
 
 class MainShell extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
@@ -44,25 +44,28 @@ class MainShell extends StatelessWidget {
                     if (pending > 0)
                       Padding(
                         padding: const EdgeInsets.only(right: 8),
-                        child: ActionChip(
-                          avatar: const Icon(Icons.sync, size: 18),
-                          label: Text('Pendientes: $pending'),
+                        child: _EstadoChip(
+                          icon: Icons.sync,
+                          label: 'Pendientes: $pending',
+                          color: AppColors.info,
                           onPressed: () => context.push('/offline/sync'),
                         ),
                       ),
                     if (conflictCount > 0)
                       Padding(
                         padding: const EdgeInsets.only(right: 8),
-                        child: ActionChip(
-                          avatar: const Icon(Icons.merge_type, size: 18),
-                          label: Text('Conflictos: $conflictCount'),
+                        child: _EstadoChip(
+                          icon: Icons.merge_type,
+                          label: 'Conflictos: $conflictCount',
+                          color: AppColors.warning,
                           onPressed: () => context.push('/offline/conflicts'),
                         ),
                       ),
                     if (paymentCount > 0)
-                      ActionChip(
-                        avatar: const Icon(Icons.schedule_outlined, size: 18),
-                        label: Text('Pagos: $paymentCount'),
+                      _EstadoChip(
+                        icon: Icons.schedule_outlined,
+                        label: 'Pagos: $paymentCount',
+                        color: AppColors.accent,
                         onPressed: () => context.push('/offline/payments'),
                       ),
                   ],
@@ -151,6 +154,42 @@ class MainShell extends StatelessWidget {
           },
         ),
       ),
+    );
+  }
+}
+
+/// [FIX-UI] Chip de estado offline con tinte semántico de la paleta:
+/// azul = sincronización pendiente, ámbar = conflictos, coral = pagos.
+class _EstadoChip extends StatelessWidget {
+  const _EstadoChip({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return ActionChip(
+      avatar: Icon(icon, size: 16, color: color),
+      label: Text(
+        label,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          color: Color.lerp(color, AppColors.textPrimary, 0.35),
+        ),
+      ),
+      backgroundColor: color.withOpacity(0.1),
+      side: BorderSide(color: color.withOpacity(0.35)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      onPressed: onPressed,
     );
   }
 }

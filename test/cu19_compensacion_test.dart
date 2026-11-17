@@ -12,11 +12,14 @@ CompensacionModel _comp({
   String tipo = 'REEMBOLSO_EFECTIVO',
   String estado = 'PENDIENTE',
   int operacionId = 500,
-  String? uuid = 'uuid-op-500',
+  // [EXAMEN-2] B1.9.b: el `uuid_operacion` es la clave real de idempotencia
+  // (RN-020). Cada operación offline distinta tiene su propio UUID, así que
+  // se deriva del `operacionId` salvo que se pase explícitamente.
+  String? uuid,
 }) => CompensacionModel(
   id: id,
   operacionOfflineId: operacionId,
-  uuidOperacion: uuid,
+  uuidOperacion: uuid ?? 'uuid-op-$operacionId',
   monto: 100,
   moneda: 'BOB',
   tipo: tipo,
@@ -57,7 +60,7 @@ void main() {
       expect(confirmada.fechaCompletado, isNotNull);
 
       // Sin repetir: la segunda confirmación lanza.
-      expect(
+      await expectLater(
         () => servicios.compensation.confirmarEfectivo(
           7,
           esCajero: true,
@@ -66,7 +69,7 @@ void main() {
         throwsA(isA<StateError>()),
       );
       // Y sin rol cajero tampoco.
-      expect(
+      await expectLater(
         () => servicios.compensation.confirmarEfectivo(
           7,
           esCajero: false,
@@ -85,7 +88,7 @@ void main() {
       _comp(id: 9, tipo: 'NOTA_CREDITO', estado: 'PENDIENTE', operacionId: 501),
     ]);
     // Tarjeta y nota de crédito: la app solo informa, no confirma.
-    expect(
+    await expectLater(
       () => servicios.compensation.confirmarEfectivo(
         8,
         esCajero: true,
@@ -93,7 +96,7 @@ void main() {
       ),
       throwsA(isA<StateError>()),
     );
-    expect(
+    await expectLater(
       () => servicios.compensation.confirmarEfectivo(
         9,
         esCajero: true,

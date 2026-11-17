@@ -1,6 +1,10 @@
+import 'dart:io';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../config/config.dart';
+import '../models/api_response.dart';
 import '../models/order_model.dart';
 import '../models/cart_model.dart';
 import '../models/reservation_model.dart';
@@ -30,6 +34,8 @@ class CheckoutProvider extends ChangeNotifier {
   // Processing state
   bool _isProcessing = false;
   String? _errorMessage;
+  // [EXAMEN-2] CU15/§19: feedback informativo (no error) del flujo offline.
+  String? _mensaje;
   OrderModel? _lastCreatedOrder;
   List<OrderModel> _orderHistory = [];
   bool _isLoadingHistory = false;
@@ -51,6 +57,10 @@ class CheckoutProvider extends ChangeNotifier {
   String get paymentMethod => _paymentMethod;
   bool get isProcessing => _isProcessing;
   String? get errorMessage => _errorMessage;
+  // [EXAMEN-2] CU15/§19: "Pedido guardado localmente...".
+  String? get mensaje => _mensaje;
+  static const String mensajePagoDiferidoOffline =
+      'Pedido guardado localmente. El pago se completará cuando haya conexión.';
   OrderModel? get lastCreatedOrder => _lastCreatedOrder;
   List<OrderModel> get orderHistory => _orderHistory;
   bool get isLoadingHistory => _isLoadingHistory;
@@ -113,6 +123,7 @@ class CheckoutProvider extends ChangeNotifier {
 
     _isProcessing = true;
     _errorMessage = null;
+    _mensaje = null;
     notifyListeners();
 
     try {
@@ -144,6 +155,16 @@ class CheckoutProvider extends ChangeNotifier {
       } catch (error) {
         final cartService = _cartService;
         if (cartService == null || items == null || items.isEmpty) rethrow;
+        // [EXAMEN-2] B1.6.g: sólo los fallos de **conectividad** degradan a
+        // orden local con pago diferido. Un 4xx del servidor (validación,
+        // tenant suspendido, producto desactivado) debe propagarse: antes se
+        // creaba una orden local "fantasma" y el cliente veía "pedido guardado"
+        // cuando el servidor lo había rechazado.
+        if (!_esErrorDeConectividad(error)) rethrow;
+        // [FIX] Si el carrito sólo existía en el servidor (ítems agregados con
+        // conexión), el carrito local estaría vacío y la conversión fallaría:
+        // se siembran los ítems en SQLite antes de convertir.
+        await cartService.asegurarCarritoConItems(items);
         final conversion = await cartService.convertirEnPagoDiferido(
           sucursalId: _deliveryType == 'PICKUP' ? _selectedBranch?.id : null,
           direccionEnvio: _deliveryType == 'SHIPPING'
@@ -169,6 +190,8 @@ class CheckoutProvider extends ChangeNotifier {
           expiraEn: DateTime.now().toUtc().add(const Duration(hours: 24)),
         );
         _lastCreatedOrder = order;
+        // [EXAMEN-2] CU15/§19: feedback del pago diferido offline.
+        _mensaje = mensajePagoDiferidoOffline;
         _isProcessing = false;
         notifyListeners();
         return order;
@@ -187,6 +210,40 @@ class CheckoutProvider extends ChangeNotifier {
       notifyListeners();
       return null;
     }
+  }
+
+  /// [EXAMEN-2] B1.6.g: ¿el fallo es de **conectividad** (y no del servidor)?
+  ///
+  /// Si el servidor respondió (cualquier código HTTP), el fallo es de
+  /// negocio y no se puede degradar a una orden local con pago diferido.
+  ///
+  /// [FIX] `OrderService` envuelve los fallos de Dio en una `ApiException`
+  /// (vía `handleError`). Cuando el servidor NO respondió (sin conexión),
+  /// esa `ApiException` llega con `statusCode == null` y mensajes como
+  /// "No se pudo conectar al servidor FashionStore (...)": antes no se
+  /// reconocía como fallo de red (el texto dice "conectar", no "connection")
+  /// y el pago diferido offline nunca se ejecutaba.
+  bool _esErrorDeConectividad(Object error) {
+    if (error is DioException) {
+      if (error.response?.statusCode != null) return false;
+      return true;
+    }
+    if (error is SocketException) return true;
+    // Un ApiException con statusCode nulo significa "el servidor no
+    // respondió": conexión caída, timeout o DNS. Un rechazo del servidor
+    // (4xx/5xx) siempre trae código y NO se degrada.
+    if (error is ApiException) return error.statusCode == null;
+    final texto = error.toString().toLowerCase();
+    return texto.contains('socket') ||
+        texto.contains('connection') ||
+        texto.contains('conectar') ||
+        texto.contains('conexión') ||
+        texto.contains('conexion') ||
+        texto.contains('network') ||
+        texto.contains('failed host lookup') ||
+        texto.contains('connection refused') ||
+        texto.contains('timeout') ||
+        texto.contains('timed out');
   }
 
   /// URLs de retorno que el WebView in-app intercepta (ver

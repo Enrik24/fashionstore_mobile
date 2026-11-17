@@ -30,6 +30,14 @@ class LocalMigrations {
     if (version < 4) {
       await LocalSchema.crearV4(db);
       await _registrarVersion(db, 4);
+      version = 4;
+    }
+    // [EXAMEN-2] Plan de cierre de brechas (Ola 1): v5 con flags de revisión,
+    // stock no confirmado, libro de movimientos e idempotencia de compensación.
+    if (version < 5) {
+      await LocalSchema.crearV5(db);
+      await _registrarVersion(db, 5);
+      version = 5;
     }
   }
 

@@ -18,3 +18,25 @@ class RelativeDateFormat {
     return '${f.day}/${f.month}/${f.year} ${f.hour.toString().padLeft(2, '0')}:${f.minute.toString().padLeft(2, '0')}';
   }
 }
+
+/// [FIX-UI] Cuenta regresiva legible para pagos diferidos (CU16).
+///
+/// Antes se mostraban los minutos totales (`1439:16` para 23 h 59 m). Ahora:
+/// `23 h 59 min`, `1 d 2 h` o `MM:SS` cuando queda menos de una hora.
+class CountdownFormat {
+  const CountdownFormat._();
+
+  static String legible(Duration? restante) {
+    if (restante == null) return 'Sin vencimiento';
+    if (restante <= Duration.zero) return 'Vencido';
+    if (restante.inHours >= 24) {
+      return '${restante.inDays} d ${restante.inHours.remainder(24)} h';
+    }
+    if (restante.inHours >= 1) {
+      return '${restante.inHours} h ${restante.inMinutes.remainder(60)} min';
+    }
+    final minutos = restante.inMinutes.toString().padLeft(2, '0');
+    final segundos = restante.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$minutos:$segundos';
+  }
+}

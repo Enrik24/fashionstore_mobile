@@ -510,6 +510,34 @@ class ProfilePage extends StatelessWidget {
                               trailing: const Icon(Icons.chevron_right_rounded),
                               onTap: () => context.push('/pos'),
                             ),
+                          // [EXAMEN-2] B1.8.a/b: las rutas `/offline/pin` y
+                          // `/offline/devices` existían pero **nadie navegaba**
+                          // a ellas: el cajero no podía configurar su PIN ni
+                          // revocar un dispositivo desde la app.
+                          ListTile(
+                            leading: const Icon(
+                              Icons.pin_outlined,
+                              color: AppColors.primary,
+                            ),
+                            title: const Text('PIN de acceso offline'),
+                            subtitle: const Text(
+                              'Configura el PIN para operar sin conexión',
+                            ),
+                            trailing: const Icon(Icons.chevron_right_rounded),
+                            onTap: () => context.push('/offline/pin'),
+                          ),
+                          ListTile(
+                            leading: const Icon(
+                              Icons.devices_outlined,
+                              color: AppColors.primary,
+                            ),
+                            title: const Text('Dispositivos autorizados'),
+                            subtitle: const Text(
+                              'Revoca el acceso de los dispositivos de tu cuenta',
+                            ),
+                            trailing: const Icon(Icons.chevron_right_rounded),
+                            onTap: () => context.push('/offline/devices'),
+                          ),
                         ],
                       ),
                     ),

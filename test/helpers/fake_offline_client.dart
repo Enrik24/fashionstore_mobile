@@ -2,12 +2,15 @@ import 'package:fashionstore_mobile/core/services/device_service.dart';
 
 /// Cliente HTTP falso para pruebas de Fase 2.
 class FakeOfflineClient implements OfflineApiClient {
-  FakeOfflineClient({this.online = true});
+  FakeOfflineClient({this.online = true, this.responder});
 
   bool online;
   final List<String> paths = <String>[];
   final List<Map<String, dynamic>> requests = <Map<String, dynamic>>[];
   final List<Map<String, dynamic>> headers = <Map<String, dynamic>>[];
+  // [EXAMEN-2] B1.1.l: se registran los query params para poder verificar
+  // el contrato HTTP (p.ej. `desde_version` del catálogo incremental).
+  final List<Map<String, dynamic>> queries = <Map<String, dynamic>>[];
   dynamic Function(String path, dynamic data)? responder;
 
   @override
@@ -16,6 +19,7 @@ class FakeOfflineClient implements OfflineApiClient {
     Map<String, dynamic>? queryParameters,
   }) async {
     paths.add(path);
+    queries.add(Map<String, dynamic>.from(queryParameters ?? const {}));
     if (!online) throw StateError('offline');
     return responder?.call(path, null) ?? const <String, dynamic>{};
   }

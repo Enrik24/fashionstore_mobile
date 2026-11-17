@@ -3,7 +3,9 @@ import '../../../config/theme.dart';
 
 class QuantitySelector extends StatelessWidget {
   final int quantity;
-  final int maxStock;
+  /// [EXAMEN-2] B1.6.c: `null` = stock **desconocido** (no se limitó la
+  /// cantidad; el servidor lo validará al sincronizar).
+  final int? maxStock;
   final ValueChanged<int> onChanged;
   final bool isLoading;
 
@@ -53,7 +55,8 @@ class QuantitySelector extends StatelessWidget {
             ),
           ),
           InkWell(
-            onTap: (isLoading || quantity >= maxStock)
+            // [EXAMEN-2] B1.6.c: sin stock conocido no se limita la cantidad.
+            onTap: (isLoading || (maxStock != null && quantity >= maxStock!))
                 ? null
                 : () {
                     onChanged(quantity + 1);
@@ -66,7 +69,8 @@ class QuantitySelector extends StatelessWidget {
               child: Icon(
                 Icons.add,
                 size: 16,
-                color: quantity >= maxStock
+                color:
+                    (maxStock != null && quantity >= maxStock!)
                     ? AppColors.textMuted
                     : AppColors.textPrimary,
               ),

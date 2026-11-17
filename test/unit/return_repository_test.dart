@@ -35,7 +35,14 @@ void main() {
             'estado_item': 'DEVUELTA',
           },
         ],
-        movimientosStock: [(varianteId: 101, delta: 1, deltaReserva: 0)],
+        movimientosStock: [
+          (
+            varianteId: 101,
+            delta: 1,
+            deltaReserva: -1,
+            tipo: 'DEVOLUCION',
+          ),
+        ],
         sucursalId: 1,
       );
 

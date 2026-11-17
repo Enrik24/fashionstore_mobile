@@ -10,7 +10,13 @@ class CartItemModel {
   final String? colorNombre;
   final String? colorHex;
   final String? skuVariante;
-  final int stockDisponible;
+
+  /// [EXAMEN-2] B1.6.c: stock disponible **conocido**.
+  ///
+  /// `null` significa "sin dato local" (no se descargó el stock de esa
+  /// variante). Antes se usaba `0` para ese caso, lo que hacía que el carrito
+  /// **borrara** los ítems sin stock descargado y bloquease el checkout.
+  final int? stockDisponible;
   final int productoId;
   final int? categoriaId;
   // [EXAMEN-2] Precio y stock conocidos localmente (CU15).
@@ -190,6 +196,12 @@ class CartModel {
   final bool esOffline;
   final String estadoSincronizacion;
   final DateTime? fechaActualizacion;
+  // [EXAMEN-2] B1.1.a: impuestos estimados del total offline (la tasa
+  // vigente viene del paquete offline del tenant).
+  final double impuestos;
+  // [EXAMEN-2] B1.1.j: sello de la descarga con la que se calcularon los
+  // precios del carrito (son referenciales hasta la sincronización).
+  final String? selloDescarga;
 
   CartModel({
     required this.id,
@@ -205,6 +217,8 @@ class CartModel {
     this.esOffline = false,
     this.estadoSincronizacion = 'PENDIENTE',
     this.fechaActualizacion,
+    this.impuestos = 0.0,
+    this.selloDescarga,
   });
 
   int get totalItems => items.fold(0, (sum, item) => sum + item.cantidad);
@@ -276,6 +290,12 @@ class CartModel {
       fechaActualizacion: DateTime.tryParse(
         json['fecha_actualizacion']?.toString() ?? '',
       ),
+      // [EXAMEN-2] B1.1.a / B1.1.j.
+      impuestos:
+          (json['impuestos'] as num?)?.toDouble() ??
+          double.tryParse(json['impuestos']?.toString() ?? '') ??
+          0.0,
+      selloDescarga: json['sello_descarga']?.toString(),
     );
   }
 
@@ -286,6 +306,7 @@ class CartModel {
       'items': items.map((i) => i.toJson()).toList(),
       'subtotal': subtotal,
       'descuento_aplicado': descuentoAplicado,
+      'impuestos': impuestos,
       'total': total,
       'cupon_codigo': cuponCodigo,
       'uuid_carrito': uuidCarrito,
@@ -293,6 +314,7 @@ class CartModel {
       'estado': estado,
       'es_offline': esOffline,
       'estado_sincronizacion': estadoSincronizacion,
+      'sello_descarga': selloDescarga,
       'fecha_actualizacion': fechaActualizacion?.toUtc().toIso8601String(),
     };
   }

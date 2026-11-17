@@ -1,4 +1,4 @@
-// [EXAMEN-2] CU17: configuración offline efectiva del tenant.
+// [EXAMEN-2] CU17 / CU05: configuración offline efectiva del tenant.
 class OfflineConfigModel {
   const OfflineConfigModel({
     this.tenantId = 0,
@@ -11,6 +11,10 @@ class OfflineConfigModel {
     this.maxDiasOrdenPendiente = 1,
     this.moneda = 'BOB',
     this.clavePublicaStripe,
+    // [EXAMEN-2] B1.1.a: tasa de impuestos vigente que el backend ya envía
+    // en el paquete offline (`impuestos.tasa_total`). Antes el móvil la
+    // ignoraba y los totales offline no incluían impuestos.
+    this.tasaImpuestos = 0,
   });
 
   final int tenantId;
@@ -23,6 +27,9 @@ class OfflineConfigModel {
   final int maxDiasOrdenPendiente;
   final String moneda;
   final String? clavePublicaStripe;
+
+  /// [EXAMEN-2] B1.1.a: tasa total de impuestos (0 = sin impuestos).
+  final double tasaImpuestos;
 
   factory OfflineConfigModel.fromJson(Map<String, dynamic> json) =>
       OfflineConfigModel(
@@ -39,6 +46,10 @@ class OfflineConfigModel {
             (json['max_dias_orden_pendiente'] as num?)?.toInt() ?? 1,
         moneda: json['moneda']?.toString() ?? 'BOB',
         clavePublicaStripe: json['clave_publica_stripe']?.toString(),
+        tasaImpuestos:
+            (json['tasa_total'] as num?)?.toDouble() ??
+            (json['tasa_impuestos'] as num?)?.toDouble() ??
+            0,
       );
 
   Map<String, dynamic> toJson() => {
@@ -52,5 +63,6 @@ class OfflineConfigModel {
     'max_dias_orden_pendiente': maxDiasOrdenPendiente,
     'moneda': moneda,
     'clave_publica_stripe': clavePublicaStripe,
+    'tasa_total': tasaImpuestos,
   };
 }

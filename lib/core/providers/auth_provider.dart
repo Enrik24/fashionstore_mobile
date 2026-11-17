@@ -6,6 +6,7 @@ import '../services/storage_service.dart';
 import 'cart_provider.dart';
 import 'favorites_provider.dart';
 import '../services/notification_service.dart';
+import '../services/device_service.dart';
 
 enum AuthStatus {
   initial,
@@ -21,6 +22,7 @@ class AuthProvider extends ChangeNotifier {
   final CartProvider _cartProvider;
   FavoritesProvider? _favoritesProvider;
   NotificationService? _notificationService;
+  DeviceService? _deviceService;
 
   AuthStatus _status = AuthStatus.initial;
   UserModel? _currentUser;
@@ -36,11 +38,13 @@ class AuthProvider extends ChangeNotifier {
     required CartProvider cartProvider,
     FavoritesProvider? favoritesProvider,
     NotificationService? notificationService,
+    DeviceService? deviceService,
   }) : _authService = authService,
        _storageService = storageService,
        _cartProvider = cartProvider,
        _favoritesProvider = favoritesProvider,
-       _notificationService = notificationService;
+       _notificationService = notificationService,
+       _deviceService = deviceService;
 
   /// Se inyecta desde `main.dart` (el provider se crea antes que este).
   set favoritesProvider(FavoritesProvider? provider) {
@@ -51,10 +55,25 @@ class AuthProvider extends ChangeNotifier {
     _notificationService = service;
   }
 
+  set deviceService(DeviceService? service) {
+    _deviceService = service;
+  }
+
   /// Registra el dispositivo para push (no bloquea si falla).
   Future<void> _registerPushDevice() async {
     try {
       await _notificationService?.registerDevice();
+    } catch (_) {}
+  }
+
+  /// [EXAMEN-2] RN-019: da de alta el UUID local en
+  /// `dispositivos_sincronizacion` tras autenticar online. Sin este alta,
+  /// `POST /offline/sync` responde 403 DISPOSITIVO_REVOCADO ("Dispositivo
+  /// no registrado") al reconectar y la app cerraba sesión por error.
+  /// El registro es idempotente en el backend y nunca bloquea el login.
+  Future<void> _registrarDispositivoOffline() async {
+    try {
+      await _deviceService?.registrar();
     } catch (_) {}
   }
 
@@ -159,6 +178,8 @@ class AuthProvider extends ChangeNotifier {
       } catch (_) {}
       // Registrar dispositivo para notificaciones push (CU13).
       await _registerPushDevice();
+      // [EXAMEN-2] RN-019: alta del dispositivo para /offline/sync (CU08).
+      await _registrarDispositivoOffline();
     } catch (_) {
       // [EXAMEN-2] Un fallo de red no concede autenticación implícita.
       // La app conserva el usuario cacheado, pero CU17 exige PIN local.
@@ -211,6 +232,8 @@ class AuthProvider extends ChangeNotifier {
         await _favoritesProvider?.loadIds();
       } catch (_) {}
       await _registerPushDevice();
+      // [EXAMEN-2] RN-019: alta del dispositivo para /offline/sync (CU08).
+      await _registrarDispositivoOffline();
 
       return true;
     } catch (e) {
@@ -269,6 +292,8 @@ class AuthProvider extends ChangeNotifier {
         await _favoritesProvider?.loadIds();
       } catch (_) {}
       await _registerPushDevice();
+      // [EXAMEN-2] RN-019: alta del dispositivo para /offline/sync (CU08).
+      await _registrarDispositivoOffline();
 
       return true;
     } catch (e) {

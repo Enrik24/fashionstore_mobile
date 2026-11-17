@@ -5,6 +5,7 @@ abstract class LocalOperationRepository extends TenantLocalRepository {
   LocalOperationRepository(
     super.db, {
     required super.tenantId,
+    super.usuarioId,
     required this.tablaCabecera,
     required this.columnaUuid,
     required this.tablaItems,
@@ -67,6 +68,8 @@ abstract class LocalOperationRepository extends TenantLocalRepository {
           ...item,
           columnaUuid: uuid,
           'tenant_id': tenantId,
+          // [EXAMEN-2] B0.4: el detalle también registra el usuario.
+          'usuario_id': item['usuario_id'] ?? usuarioId,
           'fecha_actualizacion': DateTime.now().toUtc().toIso8601String(),
         });
       } else {
@@ -74,6 +77,7 @@ abstract class LocalOperationRepository extends TenantLocalRepository {
           ...item,
           columnaUuid: uuid,
           'tenant_id': tenantId,
+          'usuario_id': item['usuario_id'] ?? usuarioId,
         });
       }
     }

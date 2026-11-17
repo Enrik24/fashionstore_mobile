@@ -40,14 +40,40 @@ class PendingPaymentProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> confirm(String uuid) async {
-    await _service.confirmarPago(uuid);
-    await load();
+  /// [EXAMEN-2] B1.7.c: confirma el pago diferido. Devuelve `true` si se
+  /// confirmó (antes devolvía `void` y la UI no podía informar).
+  Future<bool> confirm(String uuid) async {
+    try {
+      await _service.confirmarPago(uuid);
+      await load();
+      _error = null;
+      return true;
+    } catch (error) {
+      _error = error.toString();
+      notifyListeners();
+      return false;
+    }
   }
 
-  Future<void> retry(String uuid) async {
-    await _service.reintentarPago(uuid);
-    await load();
+  /// [EXAMEN-2] B1.7.c: reintenta el pago diferido.
+  Future<bool> retry(String uuid) async {
+    try {
+      await _service.reintentarPago(uuid);
+      await load();
+      _error = null;
+      return true;
+    } catch (error) {
+      _error = error.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Prepara el cobro: PaymentSheet nativo o redirección al checkout de Stripe.
+  Future<PreparacionPago> prepararPago(String uuid) async {
+    final preparacion = await _service.prepararPago(uuid);
+    notifyListeners();
+    return preparacion;
   }
 
   Future<String?> prepararPaymentSheet(String uuid) async {
@@ -55,6 +81,8 @@ class PendingPaymentProvider extends ChangeNotifier {
     notifyListeners();
     return secret;
   }
+
+  void olvidarClientSecret(String uuid) => _service.olvidarClientSecret(uuid);
 
   @override
   void dispose() {

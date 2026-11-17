@@ -55,6 +55,25 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     );
   }
 
+  /// Precio vigente de la prenda: el de la variante seleccionada (talla + color),
+  /// que es exactamente el que cobra el servidor al crear el carrito o la venta
+  /// (`VarianteProducto.precio_variante`). Si la variante no tiene precio
+  /// propio, se usa el precio base del producto.
+  double _precioActual(ProductModel product) {
+    final precioVariante = _selectedVariant?.precioVariante;
+    if (precioVariante != null) return precioVariante;
+    return product.precio;
+  }
+
+  /// Aclara que el precio mostrado depende de la talla elegida.
+  String? _notaPrecio() {
+    if (_selectedVariant?.precioVariante == null) return null;
+    final talla = _selectedVariant?.tallaNombre;
+    return (talla != null && talla.isNotEmpty)
+        ? 'Precio de la talla $talla'
+        : 'Precio de la variante seleccionada';
+  }
+
   Future<void> _toggleFavorite(ProductModel product) async {
     final auth = context.read<AuthProvider>();
     if (!auth.isAuthenticated) {
@@ -479,14 +498,29 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                             product.id,
                             product.categoriaId,
                           );
+                          // El precio mostrado es el de la variante seleccionada
+                          // (talla + color): es el mismo que cobra el servidor
+                          // (`VarianteProducto.precio_variante`). Si la variante
+                          // no tiene precio propio, se usa el del producto.
+                          final precioActual = _precioActual(product);
+                          // La oferta del producto (`precio_oferta`) se traslada
+                          // proporcionalmente a la variante, para que el
+                          // descuento se vea igual en cualquier talla.
+                          final precioConOferta = product.hasDiscount
+                              ? precioActual *
+                                  (product.precioOferta! /
+                                      (product.precio > 0 ? product.precio : 1))
+                              : precioActual;
                           final precioPromo = descuento != null
-                              ? product.precio * (1 - descuento / 100)
+                              ? precioConOferta * (1 - descuento / 100)
                               : null;
                           final showPromo =
                               precioPromo != null && !product.hasDiscount;
-                          final mainPrice = showPromo
-                              ? precioPromo
-                              : product.displayPrice;
+                          final mainPrice =
+                              showPromo ? precioPromo : precioConOferta;
+                          final precioTachado = (showPromo || product.hasDiscount)
+                              ? precioActual
+                              : null;
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -511,7 +545,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                   if (product.hasDiscount || showPromo) ...[
                                     const SizedBox(width: 10),
                                     Text(
-                                      currencyFormatter.format(product.precio),
+                                      currencyFormatter.format(
+                                        precioTachado ?? precioActual,
+                                      ),
                                       style: Theme.of(context)
                                           .textTheme
                                           .titleMedium
@@ -569,6 +605,14 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                   ],
                                 ],
                               ),
+                              if (_notaPrecio() != null) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  _notaPrecio()!,
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(color: AppColors.textMuted),
+                                ),
+                              ],
                               if (es2x1 && descuento == null) ...[
                                 const SizedBox(height: 8),
                                 Container(

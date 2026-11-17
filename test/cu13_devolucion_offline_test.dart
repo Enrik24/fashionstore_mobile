@@ -34,7 +34,7 @@ void main() {
 
   test('CU13 plazo vencido bloquea la devolución (RN-012)', () async {
     final servicios = await crearServicios();
-    expect(
+    await expectLater(
       () => servicios.returns.crearDevolucionOffline(
         numeroComprobanteOrigen: 'FAC-0001',
         sucursalId: 1,

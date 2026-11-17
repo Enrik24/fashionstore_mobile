@@ -49,14 +49,14 @@ void main() {
       expect(descifrado, secreto);
     });
 
-    test('rechaza un ciphertext AES-GCM alterado', () {
+    test('rechaza un ciphertext AES-GCM alterado', () async {
       final crypto = LocalCryptoService();
       final clave = crypto.generarClaveBase();
       final cifrado = crypto.cifrarTexto('dato sensible', clave);
       final bytes = base64Url.decode(cifrado);
       bytes[bytes.length - 1] ^= 0x01;
 
-      expect(
+      await expectLater(
         () => crypto.descifrarTexto(base64UrlEncode(bytes), clave),
         throwsA(isA<Exception>()),
       );

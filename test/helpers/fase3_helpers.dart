@@ -51,6 +51,9 @@ Future<void> sembrarCatalogo(
     'tenant_id': tenantId,
     'producto_id': 10,
     'sku_variante': 'B-M',
+    // [EXAMEN-2] B1.10.d: la talla permite ordenar las alternativas
+    // (XS < S < M < L < XL) en el catálogo local.
+    'talla': 'M',
     'precio': 100,
     'fecha_actualizacion': ahora,
   });
@@ -59,6 +62,7 @@ Future<void> sembrarCatalogo(
     'tenant_id': tenantId,
     'producto_id': 10,
     'sku_variante': 'B-L',
+    'talla': 'L',
     'precio': 120,
     'fecha_actualizacion': ahora,
   });
@@ -67,6 +71,7 @@ Future<void> sembrarCatalogo(
     'tenant_id': tenantId,
     'producto_id': 20,
     'sku_variante': 'P-30',
+    'talla': '30',
     'precio': 150,
     'fecha_actualizacion': ahora,
   });

@@ -20,6 +20,9 @@ class ReservationCard extends StatelessWidget {
       case 'CONFIRMADA':
         return AppColors.success;
       case 'PENDIENTE':
+      // [EXAMEN-2] B1.2.i: la reserva pendiente de sincronización no es un
+      // error: antes caía en `default` y se pintaba de **rojo**.
+      case 'PENDIENTE_SINCRONIZACION':
         return AppColors.warning;
       case 'COMPLETADA':
         return AppColors.info;
@@ -90,6 +93,42 @@ class ReservationCard extends StatelessWidget {
               ],
             ),
             const Divider(height: 20),
+
+            // [EXAMEN-2] B1.2.g: aviso visible de que la reserva quedó
+            // registrada localmente y aún no se ha sincronizado.
+            if (reservation.isPendienteDeSincronizacion) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.warning.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(
+                      Icons.cloud_upload_outlined,
+                      size: 16,
+                      color: AppColors.warning,
+                    ),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Registrada localmente. Se enviará al servidor cuando '
+                        'haya conexión.',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppColors.warning,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
 
             // Branch & Date Info
             Row(

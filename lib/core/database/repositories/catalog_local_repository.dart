@@ -13,11 +13,25 @@ class CatalogLocalRepository extends TenantLocalRepository {
     if (datos['precio_referencia'] != null && datos['precio'] == null) {
       datos['precio'] = datos['precio_referencia'];
     }
+    // [EXAMEN-2] B1.1: `precio` es NOT NULL en el esquema (con default 0);
+    // si el payload lo trae en null, el INSERT fallaba.
+    if (datos['precio'] == null) datos['precio'] = 0;
+    // `nombre` NO se tolera: es un identificador de negocio. Si falta, el
+    // paquete debe fallar y **revertirse** (atomicidad, `cu05_descarga_offline_test`).
     return guardarPorClave('productos', 'id', producto['id'], datos);
   }
 
-  Future<void> guardarVariante(Map<String, Object?> variante) =>
-      guardarPorClave('variantes', 'id', variante['id'], variante);
+  Future<void> guardarVariante(Map<String, Object?> variante) {
+    final datos = <String, Object?>{...variante};
+    // [EXAMEN-2] B1.1: la variante hereda el precio del producto cuando el
+    // backend no envía uno propio.
+    if (datos['precio'] == null) {
+      datos['precio'] = (datos['precio_variante'] as num?)?.toDouble() ?? 0;
+    }
+    // `sku_variante` NO se tolera (identificador de negocio): si falta, el
+    // paquete falla y se revierte.
+    return guardarPorClave('variantes', 'id', variante['id'], datos);
+  }
   Future<void> guardarSucursal(Map<String, Object?> sucursal) =>
       guardarPorClave('sucursales', 'id', sucursal['id'], sucursal);
   Future<void> guardarCategoria(Map<String, Object?> categoria) =>
@@ -52,13 +66,24 @@ class CatalogLocalRepository extends TenantLocalRepository {
       whereArgs: <Object?>[variante, sucursal, tenantId],
       limit: 1,
     );
-    final datos = <String, Object?>{
+    final previos = <String, Object?>{
       ...stock,
       'tenant_id': tenantId,
       'dispositivo_id': stock['dispositivo_id'],
       'usuario_id': stock['usuario_id'],
+      // [EXAMEN-2] B1.1: estas columnas son NOT NULL en el esquema local. Si
+      // el backend no las envía (o las envía en null), el INSERT fallaba con
+      // "NOT NULL constraint failed: stock.cantidad_reservada" y **toda la
+      // descarga del paquete se caía**.
+      'cantidad_reservada': (stock['cantidad_reservada'] as num?)?.toInt() ?? 0,
+      'stock_minimo': (stock['stock_minimo'] as num?)?.toInt() ?? 0,
+      'cantidad_no_confirmada':
+          (stock['cantidad_no_confirmada'] as num?)?.toInt() ?? 0,
       'fecha_actualizacion': DateTime.now().toUtc().toIso8601String(),
     };
+    // [EXAMEN-2] El backend puede agregar campos nuevos al stock; se descarta
+    // cualquier clave que la tabla local no conozca.
+    final datos = await filtrarColumnasTabla('stock', previos);
     if (existentes.isEmpty) {
       await db.insert('stock', datos);
     } else {
@@ -138,6 +163,13 @@ class CatalogLocalRepository extends TenantLocalRepository {
       orderBy: 'sku_variante',
     );
   }
+
+  Future<List<Map<String, Object?>>> listarVariantes() => consultar(
+    'variantes',
+    where: 'tenant_id = ? AND deleted_at IS NULL',
+    whereArgs: <Object?>[tenantId],
+    orderBy: 'sku_variante',
+  );
 
   Future<List<Map<String, Object?>>> buscarVariantesSku(String texto) {
     final patron = '%${texto.trim()}%';

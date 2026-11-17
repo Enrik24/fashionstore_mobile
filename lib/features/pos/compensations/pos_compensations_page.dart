@@ -67,6 +67,46 @@ class _PosCompensationsPageState extends State<PosCompensationsPage> {
     );
   }
 
+  /// [EXAMEN-2] B1.9.a: reintento del reembolso por pasarela (lo ejecuta el
+  /// backend; la app no cobra, sólo lo solicita).
+  Future<void> _reintentar(CompensacionModel compensacion) async {
+    final provider = context.read<CompensationProvider>();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Reintentar reembolso'),
+        content: Text(
+          'Se solicitará al servidor el reembolso de Bs. '
+          '${compensacion.monto.toStringAsFixed(2)} por '
+          '${CompensacionTipos.labelTipo(compensacion.tipo)}.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Reintentar'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    final reintentado = await provider.reintentar(compensacion.id);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          reintentado
+              ? 'Reembolso reintentado'
+              : provider.errorMessage ?? 'No se pudo reintentar',
+        ),
+        backgroundColor: reintentado ? Colors.green : Colors.red,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<CompensationProvider>();
@@ -93,7 +133,10 @@ class _PosCompensationsPageState extends State<PosCompensationsPage> {
                     subtitle: Text(
                       'Bs. ${c.monto.toStringAsFixed(2)} • '
                       '${CompensacionTipos.labelEstado(c.estado)}'
-                      '${c.motivo != null && c.motivo!.isNotEmpty ? '\n${c.motivo}' : ''}',
+                      '${c.motivo != null && c.motivo!.isNotEmpty ? '\n${c.motivo}' : ''}'
+                      // [EXAMEN-2] B1.9.e: se refleja si el cliente ya fue
+                      // notificado por el backend.
+                      '${c.notificadoCliente ? '\nCliente notificado' : ''}',
                     ),
                     trailing: Icon(Icons.circle, color: color, size: 14),
                     onTap: () => provider.seleccionar(c.id),
@@ -114,18 +157,49 @@ class _PosCompensationsPageState extends State<PosCompensationsPage> {
                       'Detalle #${provider.detalleSeleccionado!.id}: '
                       '${provider.detalleSeleccionado!.motivo ?? ''}',
                     ),
+                    // [EXAMEN-2] B1.9.g: sin conexión la app queda en modo
+                    // lectura: no se confirma ni se reintenta.
+                    if (provider.soloLectura)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8),
+                        child: Text(
+                          'Sin conexión: sólo consulta. La confirmación y el '
+                          'reintento se habilitarán al reconectar.',
+                          style: TextStyle(fontSize: 12, color: Colors.orange),
+                        ),
+                      ),
                     if (provider.detalleSeleccionado!.esEfectivo &&
                         !provider.detalleSeleccionado!.estaCompletada)
                       FilledButton(
-                        onPressed: () =>
-                            _confirmar(provider.detalleSeleccionado!),
+                        onPressed: provider.soloLectura
+                            ? null
+                            : () => _confirmar(provider.detalleSeleccionado!),
                         child: const Text('Confirmar efectivo'),
                       )
                     else if (!provider.detalleSeleccionado!.esEfectivo)
-                      const Text(
-                        'Este reembolso lo procesa el sistema; '
-                        'la app no ejecuta pagos por pasarela.',
-                        style: TextStyle(fontSize: 12),
+                      // [EXAMEN-2] B1.9.a: el reintento por pasarela se
+                      // **solicita** al backend (la app nunca cobra).
+                      OutlinedButton.icon(
+                        onPressed:
+                            provider.soloLectura ||
+                                provider.detalleSeleccionado!.estaCompletada
+                            ? null
+                            : () => _reintentar(provider.detalleSeleccionado!),
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('Reintentar reembolso'),
+                      ),
+                    if (provider.detalleSeleccionado!.errorDetalle != null &&
+                        provider.detalleSeleccionado!.errorDetalle!.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          'Detalle del fallo: '
+                          '${provider.detalleSeleccionado!.errorDetalle}',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.red,
+                          ),
+                        ),
                       ),
                   ],
                 ),

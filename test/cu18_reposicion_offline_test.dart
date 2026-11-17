@@ -88,7 +88,7 @@ void main() {
     expect(solicitud.numeroReposicion, startsWith('REP-'));
 
     // Fuera de plazo: no se crea.
-    expect(
+    await expectLater(
       () => servicios.returns.crearReposicionOffline(
         numeroComprobanteOrigen: 'FAC-1002',
         sucursalId: 1,
@@ -110,7 +110,7 @@ void main() {
   test('CU18 mismo producto obligatorio para la prenda nueva', () async {
     final servicios = await crearServicios();
     // Variante 201 pertenece al producto 20, no al 10.
-    expect(
+    await expectLater(
       () => servicios.returns.crearReposicionOffline(
         numeroComprobanteOrigen: 'FAC-1003',
         sucursalId: 1,
@@ -270,8 +270,108 @@ void main() {
     },
   );
 
-  test('CU18 alias crearCambioOffline legacy delega a reposición', () async {
+  test(
+    'B0.3.b: la prenda nueva queda reservada provisionalmente (RN-025)',
+    () async {
+      final servicios = await crearServicios();
+      await servicios.returns.crearReposicionOffline(
+        numeroComprobanteOrigen: 'FAC-1011',
+        sucursalId: 1,
+        items: const [
+          LineaDevolucion(
+            varianteProductoId: 101,
+            productoId: 10,
+            cantidad: 2,
+            precioUnitario: 100,
+            varianteCambioId: 102,
+            precioVarianteNueva: 100,
+          ),
+        ],
+      );
+
+      Future<int> reservada(int varianteId) async {
+        final filas = await servicios.db.database!.query(
+          'stock',
+          where: 'variante_id = ? AND sucursal_id = ? AND tenant_id = ?',
+          whereArgs: <Object?>[varianteId, 1, tenantFase3],
+          limit: 1,
+        );
+        return (filas.single['cantidad_reservada'] as num?)?.toInt() ?? 0;
+      }
+
+      // La prenda nueva sale del inventario **y** queda reservada: antes sólo
+      // se decrementaba `cantidad_reservada` sin haberla incrementado nunca.
+      expect(await reservada(102), 2);
+      // La prenda devuelta libera su reserva.
+      expect(await reservada(101), 0);
+      // La reserva nunca queda negativa.
+      for (final varianteId in <int>[101, 102]) {
+        expect(await reservada(varianteId), greaterThanOrEqualTo(0));
+      }
+
+      await servicios.db.cerrar();
+    },
+  );
+
+  test('B0.3.d: una variante nueva ausente del catálogo local se rechaza', () async {
     final servicios = await crearServicios();
+    // La variante 9999 no existe en la tabla `variantes` local.
+    await expectLater(
+      () => servicios.returns.crearReposicionOffline(
+        numeroComprobanteOrigen: 'FAC-1012',
+        sucursalId: 1,
+        items: const [
+          LineaDevolucion(
+            varianteProductoId: 101,
+            productoId: 10,
+            precioUnitario: 100,
+            varianteCambioId: 9999,
+            precioVarianteNueva: 100,
+          ),
+        ],
+      ),
+      throwsA(
+        isA<FormatException>().having(
+          (e) => e.message,
+          'mensaje',
+          contains('catálogo local'),
+        ),
+      ),
+    );
+    await servicios.db.cerrar();
+  });
+
+  test('B0.3: el libro de movimientos registra entrada y salida', () async {
+    final servicios = await crearServicios();
+    await servicios.returns.crearReposicionOffline(
+      numeroComprobanteOrigen: 'FAC-1013',
+      sucursalId: 1,
+      items: const [
+        LineaDevolucion(
+          varianteProductoId: 101,
+          productoId: 10,
+          cantidad: 1,
+          precioUnitario: 100,
+          varianteCambioId: 102,
+          precioVarianteNueva: 100,
+        ),
+      ],
+    );
+    final movimientos = await servicios.db.database!.query(
+      'movimientos_inventario',
+      where: 'tenant_id = ?',
+      whereArgs: <Object?>[tenantFase3],
+      orderBy: 'id',
+    );
+    expect(movimientos, hasLength(2));
+    expect(movimientos.first['tipo'], 'REPOSICION_ENTRADA');
+    expect(movimientos.first['variante_producto_id'], 101);
+    expect(movimientos.last['tipo'], 'REPOSICION_SALIDA');
+    expect(movimientos.last['variante_producto_id'], 102);
+    await servicios.db.cerrar();
+  });
+
+  test('CU18 alias crearCambioOffline legacy delega a reposición', () async {    final servicios = await crearServicios();
     final solicitud = await servicios.returns.crearCambioOffline(
       numeroComprobanteOrigen: 'FAC-1009',
       sucursalId: 1,

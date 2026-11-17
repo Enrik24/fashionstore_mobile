@@ -30,35 +30,56 @@ class LocalDatabaseService {
 
   Database? _db;
   String? _path;
+  Object? _ultimoErrorApertura;
 
   Database? get database => _db;
   String? get path => _path;
   bool get estaAbierta => _db?.isOpen ?? false;
+  Object? get ultimoErrorApertura => _ultimoErrorApertura;
+
+  void registrarErrorApertura(Object error) {
+    _ultimoErrorApertura = error;
+  }
 
   /// Abre la base, creando la clave si todavía no existe.
   Future<Database> abrir({String? ruta, String? claveBase}) async {
     if (estaAbierta) return _db!;
-    _path = ruta ?? await _rutaPorDefecto();
-    var clave = claveBase ?? await _storageService?.readDatabaseKey();
-    if (clave == null || clave.isEmpty) {
-      clave = _cryptoService.generarClaveBase();
-      await _storageService?.saveDatabaseKey(clave);
-    }
+    _ultimoErrorApertura = null;
+    try {
+      _path = ruta ?? await _rutaPorDefecto();
+      var clave = claveBase ?? await _storageService?.readDatabaseKey();
+      if (clave == null || clave.isEmpty) {
+        clave = _cryptoService.generarClaveBase();
+        await _storageService?.saveDatabaseKey(clave);
+      }
 
-    final factory = _factory ?? databaseFactory;
-    if (_cifrar && _factory == null) {
-      _db = await openDatabase(_path!, password: clave);
-    } else {
-      // [EXAMEN-2] FFI no cifra el archivo; SQLCipher sí lo hace en móvil.
-      _db = await factory.openDatabase(
-        _path!,
-        options: OpenDatabaseOptions(
-          onConfigure: (db) => db.execute('PRAGMA foreign_keys = ON'),
-        ),
-      );
+      final factory = _factory ?? databaseFactory;
+      if (_cifrar && _factory == null) {
+        _db = await openDatabase(_path!, password: clave);
+      } else {
+        // [EXAMEN-2] FFI no cifra el archivo; SQLCipher sí lo hace en móvil.
+        _db = await factory.openDatabase(
+          _path!,
+          options: OpenDatabaseOptions(
+            onConfigure: (db) => db.execute('PRAGMA foreign_keys = ON'),
+          ),
+        );
+      }
+      await migrar();
+      return _db!;
+    } catch (error) {
+      _ultimoErrorApertura = error;
+      final dbParcial = _db;
+      _db = null;
+      if (dbParcial != null && dbParcial.isOpen) {
+        try {
+          await dbParcial.close();
+        } catch (_) {
+          // Se conserva el error original de apertura/migración.
+        }
+      }
+      rethrow;
     }
-    await migrar();
-    return _db!;
   }
 
   Future<void> cerrar() async {

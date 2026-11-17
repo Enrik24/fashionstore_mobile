@@ -2,7 +2,7 @@ import 'tenant_local_repository.dart';
 
 /// [EXAMEN-2] Repositorio de pagos diferidos pendientes y su estado local.
 class LocalPaymentRepository extends TenantLocalRepository {
-  LocalPaymentRepository(super.db, {required super.tenantId});
+  LocalPaymentRepository(super.db, {required super.tenantId, super.usuarioId});
 
   Future<void> crear(
     String uuidPago, {
@@ -42,12 +42,15 @@ class LocalPaymentRepository extends TenantLocalRepository {
     return filas.isEmpty ? null : filas.first;
   }
 
+  /// [EXAMEN-2] B1.7.b: los pagos diferidos se envían en **FIFO** (RN-010 /
+  /// RN-015): primero el más antiguo. Antes el orden era `DESC` (LIFO), que
+  /// invertía la secuencia de las operaciones.
   Future<List<Map<String, Object?>>> listarPorEstado(String estado) {
     return consultar(
       'pagos',
       where: 'estado = ? AND tenant_id = ?',
       whereArgs: <Object?>[estado, tenantId],
-      orderBy: 'fecha_registro_local DESC',
+      orderBy: 'fecha_registro_local ASC',
     );
   }
 
@@ -56,7 +59,7 @@ class LocalPaymentRepository extends TenantLocalRepository {
       'pagos',
       where: 'tenant_id = ?',
       whereArgs: <Object?>[tenantId],
-      orderBy: 'fecha_registro_local DESC',
+      orderBy: 'fecha_registro_local ASC',
     );
   }
 

@@ -37,12 +37,10 @@ class OfflineConfigService {
   bool habilitarCarritoOffline(OfflineConfigModel config) =>
       config.habilitarCarritoOffline;
 
-  int plazoSesionHoras(OfflineConfigModel config) =>
-      config.maxHorasSesionOffline;
-
-  int diasVigenciaOrden(OfflineConfigModel config) =>
-      config.maxDiasOrdenPendiente;
-
+  /// [EXAMEN-2] B2.1: la clave **pública** de Stripe del tenant.
+  ///
+  /// Se expone para que la app pueda inicializar Stripe con la clave vigente
+  /// (descargada en el paquete offline) en lugar de la de compilación.
   String? clavePublicaStripe(OfflineConfigModel config) =>
       config.clavePublicaStripe;
 }

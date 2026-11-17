@@ -37,8 +37,20 @@ void main() {
         },
       ],
       movimientosStock: [
-        (varianteId: 101, delta: 2, deltaReserva: 0),
-        (varianteId: 102, delta: -1, deltaReserva: -1),
+        // [EXAMEN-2] B0.3.b: la prenda devuelta reingresa y libera su
+        // reserva; la nueva sale y queda reservada provisionalmente.
+        (
+          varianteId: 101,
+          delta: 2,
+          deltaReserva: -2,
+          tipo: 'REPOSICION_ENTRADA',
+        ),
+        (
+          varianteId: 102,
+          delta: -1,
+          deltaReserva: 1,
+          tipo: 'REPOSICION_SALIDA',
+        ),
       ],
       sucursalId: 1,
     );

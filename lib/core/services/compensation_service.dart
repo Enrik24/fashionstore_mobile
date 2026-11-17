@@ -2,6 +2,8 @@
 // La app SOLO consulta y confirma el reembolso en efectivo en caja; el
 // reembolso por pasarela, la nota de crédito y el reintento son del backend
 // o de la PWA (D-MOV-20). Nunca ejecuta pagos por pasarela.
+import 'package:dio/dio.dart';
+
 import '../../config/constants.dart';
 import '../database/local_database_service.dart';
 import '../database/repositories/local_compensacion_repository.dart';
@@ -16,20 +18,29 @@ class CompensationService {
     required int tenantId,
     ApiService? apiService,
     LocalAuditService? audit,
+    // [EXAMEN-2] B0.4: id del usuario para estampar `usuario_id`.
+    int? usuarioId,
   }) : _database = database,
        _tenantId = tenantId,
        _apiService = apiService,
-       _audit = audit;
+       _audit = audit,
+       _usuarioId = usuarioId;
 
   final LocalDatabaseService _database;
   final int _tenantId;
   final ApiService? _apiService;
   final LocalAuditService? _audit;
+  // [EXAMEN-2] B0.4.
+  final int? _usuarioId;
 
   LocalCompensacionRepository get _repo {
     final db = _database.database;
     if (db == null) throw StateError('La base local no está abierta.');
-    return LocalCompensacionRepository(db, tenantId: _tenantId);
+    return LocalCompensacionRepository(
+      db,
+      tenantId: _tenantId,
+      usuarioId: _usuarioId,
+    );
   }
 
   bool _es404(ApiException e) =>
@@ -142,11 +153,52 @@ class CompensationService {
           await _auditar('confirmada', id);
           return completada;
         }
+        // [EXAMEN-2] B1.9.c: la respuesta **no** es un mapa. Antes se caía al
+        // camino local de abajo y marcaba la compensación como COMPLETADA
+        // **sin confirmación del servidor** (falso éxito: el cajero creía
+        // haber entregado el efectivo y el backend no lo registró).
+        await _repo.actualizarEstado(
+          id,
+          estado: 'FALLIDA',
+          errorDetalle: 'Respuesta inesperada del servidor al confirmar.',
+        );
+        throw StateError(
+          'El servidor no confirmó la entrega del efectivo. '
+          'La compensación quedó pendiente y no se cobró de nuevo.',
+        );
       } on ApiException catch (e) {
-        if (!_es404(e)) rethrow;
+        if (!_es404(e)) {
+          // [EXAMEN-2] B1.9.d: error de red o 5xx ⇒ FALLIDA, no "completada".
+          await _repo.actualizarEstado(
+            id,
+            estado: 'FALLIDA',
+            errorDetalle: e.message,
+          );
+          rethrow;
+        }
         // 404/501 N3: degradación, se aplica en local sin romper el flujo.
-      } catch (_) {
-        // Error de red inesperado: degradación local también aplica.
+      } on StateError {
+        rethrow;
+      } on DioException catch (e) {
+        // [EXAMEN-2] B1.9.c/d: respuesta malformada o error de red ⇒ la
+        // compensación **no** se da por entregada.
+        await _repo.actualizarEstado(
+          id,
+          estado: 'FALLIDA',
+          errorDetalle: e.message,
+        );
+        throw StateError(
+          'No se pudo confirmar la entrega del efectivo: ${e.message}',
+        );
+      } catch (e) {
+        if (e is StateError) rethrow;
+        // [EXAMEN-2] B1.9.d: error de red inesperado ⇒ FALLIDA.
+        await _repo.actualizarEstado(
+          id,
+          estado: 'FALLIDA',
+          errorDetalle: e.toString(),
+        );
+        rethrow;
       }
     }
     final completada = actual.copyWith(
@@ -163,6 +215,63 @@ class CompensationService {
     await _repo.guardarCompensacion(completada);
     await _auditar('confirmada-efectivo-local', id);
     return (await _repo.obtener(id)) ?? completada;
+  }
+
+  /// [EXAMEN-2] B1.9.f: listado **sólo** de la caché local (modo lectura
+  /// sin conexión, per CU19).
+  Future<List<CompensacionModel>> listarLocal({String? estado}) =>
+      _repo.listar(estado: estado);
+
+  /// [EXAMEN-2] B1.9.f: resumen **sólo** de la caché local.
+  Future<Map<String, Object?>> resumenLocal() => _repo.resumen();
+
+  /// [EXAMEN-2] B1.9.a: reintento del reembolso por pasarela.
+  ///
+  /// El backend expone `POST /offline/compensaciones/{id}/reintentar`. La app
+  /// **no ejecuta** el reembolso (RN-008: sin conexión no hay pasarela): lo
+  /// solicita al backend, que sí lo ejecuta.
+  ///
+  /// Sólo tiene sentido con conexión; sin ella la compensación queda `FALLIDA`
+  /// y se reintenta más tarde (B1.9.d).
+  Future<CompensacionModel> reintentar(int id) async {
+    final api = _apiService;
+    if (api == null) {
+      throw StateError('No hay conexión para reintentar el reembolso');
+    }
+    try {
+      final response = await api.dio.post(
+        '${AppConstants.epOfflineCompensaciones}/$id/reintentar',
+      );
+      final data = response.data;
+      if (data is Map<String, dynamic>) {
+        final modelo = CompensacionModel.fromJson(data);
+        await _repo.guardarCompensacion(modelo);
+        await _auditar('reintentada', id);
+        return modelo;
+      }
+      throw StateError('El servidor no devolvió la compensación reintentada');
+    } on ApiException catch (e) {
+      if (_es404(e)) {
+        // El backend todavía no soporta el reintento: se marca como fallida
+        // para que el cajero lo intente más tarde.
+        await _repo.actualizarEstado(id, estado: 'FALLIDA');
+        rethrow;
+      }
+      // Error de red o 5xx: se marca FALLIDA con el detalle del error.
+      await _repo.actualizarEstado(
+        id,
+        estado: 'FALLIDA',
+        errorDetalle: e.message,
+      );
+      rethrow;
+    } catch (e) {
+      await _repo.actualizarEstado(
+        id,
+        estado: 'FALLIDA',
+        errorDetalle: e.toString(),
+      );
+      rethrow;
+    }
   }
 
   /// `GET /offline/compensaciones/resumen` con respaldo local.

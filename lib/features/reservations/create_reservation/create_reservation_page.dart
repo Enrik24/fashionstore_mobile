@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../config/theme.dart';
 import '../../../core/models/product_model.dart';
 import '../../../core/models/reservation_model.dart';
+import '../../../core/providers/catalog_provider.dart';
 import '../../../core/providers/reservation_provider.dart';
 
 class CreateReservationPage extends StatefulWidget {
@@ -31,7 +32,13 @@ class _CreateReservationPageState extends State<CreateReservationPage> {
   DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
   String _selectedTimeSlot = '15:00 - 18:00 (Tarde)';
   final TextEditingController _notesController = TextEditingController();
+  final TextEditingController _busquedaController = TextEditingController();
   BranchModel? _branch;
+
+  // [EXAMEN-2] B1.2.f: prendas seleccionadas para la reserva. Antes la
+  // pantalla sólo podía reservar el producto que llegaba por `extra`, sin
+  // poder elegir prendas del catálogo local.
+  final List<Map<String, dynamic>> _prendas = [];
 
   final List<String> _timeSlots = [
     '10:00 - 13:00 (Mañana)',
@@ -44,6 +51,12 @@ class _CreateReservationPageState extends State<CreateReservationPage> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = context.read<ReservationProvider>();
+      // [EXAMEN-2] B1.2.f: se carga el catálogo (con respaldo offline) para
+      // que el selector de prendas tenga datos aunque no haya conexión.
+      final catalog = context.read<CatalogProvider>();
+      if (catalog.products.isEmpty) {
+        catalog.loadCatalog();
+      }
       if (provider.branches.isEmpty) {
         provider.loadBranches().then((_) {
           if (mounted) {
@@ -119,6 +132,185 @@ class _CreateReservationPageState extends State<CreateReservationPage> {
     }
   }
 
+  /// [EXAMEN-2] B1.2.f: selector de prendas del catálogo local.
+  ///
+  /// Permite elegir talla/color/cantidad **sin conexión** (el catálogo
+  /// descargado) y avisar cuando el stock local no alcanza ("Stock no
+  /// verificado en servidor"), con la opción de forzar el registro.
+  Widget _selectorPrendas(BuildContext context) {
+    final catalog = context.watch<CatalogProvider>();
+    final resultados = catalog.searchResults.isNotEmpty
+        ? catalog.searchResults
+        : catalog.products;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.checkroom_outlined, color: AppColors.accent),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Prendas a reservar',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              if (_prendas.isNotEmpty)
+                Text(
+                  '${_prendas.length} seleccionada(s)',
+                  style: const TextStyle(fontSize: 12, color: AppColors.accent),
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          // Prendas ya elegidas.
+          for (final prenda in _prendas)
+            ListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.inventory_2_outlined, size: 18),
+              title: Text(
+                'Prenda #${prenda['variante_producto_id']} '
+                'x${prenda['cantidad']}',
+                style: const TextStyle(fontSize: 13),
+              ),
+              trailing: IconButton(
+                icon: const Icon(Icons.close, size: 18),
+                onPressed: () => setState(() => _prendas.remove(prenda)),
+              ),
+            ),
+          if (_prendas.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 6),
+              child: Text(
+                'Selecciona las prendas que quieres reservar. Sin conexión se '
+                'usa el catálogo descargado (los precios y el stock son '
+                'referenciales).',
+                style: TextStyle(fontSize: 12),
+              ),
+            ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _busquedaController,
+            decoration: InputDecoration(
+              labelText: 'Buscar prenda en el catálogo',
+              isDense: true,
+              suffixIcon: IconButton(
+                icon: const Icon(Icons.search),
+                onPressed: () => catalog.searchProducts(_busquedaController.text),
+              ),
+            ),
+            onSubmitted: catalog.searchProducts,
+          ),
+          const SizedBox(height: 8),
+          if (catalog.isOfflineData)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 8),
+              child: Text(
+                'Datos posiblemente desactualizados: catálogo descargado '
+                '(última sincronización).',
+                style: TextStyle(fontSize: 11, color: AppColors.warning),
+              ),
+            ),
+          for (final producto in resultados.take(20))
+            ExpansionTile(
+              dense: true,
+              tilePadding: EdgeInsets.zero,
+              title: Text(
+                producto.nombre,
+                style: const TextStyle(fontSize: 13),
+              ),
+              children: [
+                for (final variante in producto.variantes)
+                  ListTile(
+                    dense: true,
+                    contentPadding: const EdgeInsets.only(left: 16),
+                    title: Text(
+                      '${variante.tallaNombre ?? ''} '
+                      '${variante.colorNombre != null ? '• ${variante.colorNombre}' : ''}',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    subtitle: Text(
+                      'Stock local: ${variante.stockTotal}',
+                      style: const TextStyle(fontSize: 11),
+                    ),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.add_circle_outline, size: 20),
+                      onPressed: () => _agregarPrenda(variante, producto),
+                    ),
+                  ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  // [EXAMEN-2] B1.2.c: prendas cuya reserva fue forzada por stock local
+  // insuficiente; la operación queda marcada para revisión del servidor.
+  bool _forzada = false;
+
+  // [EXAMEN-2] B1.2.c: valida el stock local y avisa si no alcanza.
+  void _agregarPrenda(VarianteProducto variante, ProductModel producto) async {
+    final stock = variante.stockTotal;
+    if (stock > 0) {
+      setState(() {
+        _prendas.add({
+          'variante_producto_id': variante.id,
+          'cantidad': 1,
+          'producto_nombre': producto.nombre,
+          'stock_conocido': stock,
+        });
+      });
+      return;
+    }
+    // Stock local insuficiente o desconocido: se avisa y se ofrece forzar.
+    final forzar = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Stock no verificado en servidor'),
+        content: Text(
+          'El stock local de "${producto.nombre}" es $stock. '
+          'La reserva quedará pendiente de confirmación del servidor.\n\n'
+          '¿Continuar de todos modos?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Reservar igual'),
+          ),
+        ],
+      ),
+    );
+    if (forzar != true || !mounted) return;
+    setState(() {
+      _forzada = true;
+      _prendas.add({
+        'variante_producto_id': variante.id,
+        'cantidad': 1,
+        'producto_nombre': producto.nombre,
+        'stock_conocido': stock,
+      });
+    });
+  }
+
   Future<void> _submitReservation() async {
     if (_branch == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -129,9 +321,13 @@ class _CreateReservationPageState extends State<CreateReservationPage> {
 
     final provider = context.read<ReservationProvider>();
 
-    // Ítems: desde el carrito (CU12) o de la variante/producto preseleccionado.
+    // [EXAMEN-2] B1.2.f: las prendas come del selector de catálogo; si no se
+    // eligió ninguna, se usan las que llegaron preseleccionadas (carrito o
+    // detalle de producto).
     final items = <Map<String, dynamic>>[];
-    if (widget.initialItems != null && widget.initialItems!.isNotEmpty) {
+    if (_prendas.isNotEmpty) {
+      items.addAll(_prendas);
+    } else if (widget.initialItems != null && widget.initialItems!.isNotEmpty) {
       items.addAll(widget.initialItems!);
     } else if (widget.variant != null) {
       items.add({
@@ -158,15 +354,26 @@ class _CreateReservationPageState extends State<CreateReservationPage> {
       horarioAproximado: _selectedTimeSlot,
       notas: _notesController.text.trim(),
       items: items,
+      // [EXAMEN-2] B1.2.c/d: el forzado viaja hasta el servicio.
+      forzar: _forzada,
     );
 
     if (!mounted) return;
 
     if (res != null) {
+      // [EXAMEN-2] B1.2.g: si la reserva quedó registrada **localmente**, el
+      // mensaje es el del spec ("se enviará al servidor cuando haya
+      // conexión"); si el servidor la confirmó, el de éxito habitual.
+      final offline = res.esOffline;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('¡Reserva ${res.numeroReserva} creada con éxito!'),
-          backgroundColor: AppColors.success,
+          content: Text(
+            offline
+                ? 'Reserva ${res.numeroReserva} registrada localmente. '
+                      'Se enviará al servidor cuando haya conexión.'
+                : '¡Reserva ${res.numeroReserva} creada con éxito!',
+          ),
+          backgroundColor: offline ? AppColors.warning : AppColors.success,
         ),
       );
       context.go('/reservations');
@@ -224,6 +431,9 @@ class _CreateReservationPageState extends State<CreateReservationPage> {
                   ],
                 ),
               ),
+            // [EXAMEN-2] B1.2.f: selector de prendas del catálogo local.
+            _selectorPrendas(context),
+
             // Preselected Product Card
             if (widget.product != null)
               Container(

@@ -22,6 +22,21 @@ class BranchModel {
   });
 
   factory BranchModel.fromJson(Map<String, dynamic> json) {
+    // [FIX] El backend (`SucursalConCiudadResponse`) envía `horario_atencion`
+    // ("09:00 - 20:00") y `estado` ('ACTIVO'); los campos `horario_apertura`,
+    // `horario_cierre` y `activo` no existen y antes siempre caían a valores
+    // inventados ('09:00', '21:00', true).
+    final horarioAtencion = json['horario_atencion']?.toString();
+    String? apertura = json['horario_apertura']?.toString();
+    String? cierre = json['horario_cierre']?.toString();
+    if ((apertura == null || apertura.isEmpty) &&
+        horarioAtencion != null &&
+        horarioAtencion.isNotEmpty) {
+      final partes = horarioAtencion.split('-');
+      apertura = partes.first.trim();
+      if (partes.length > 1 && cierre == null) cierre = partes.last.trim();
+    }
+    final estado = json['estado']?.toString().toUpperCase();
     return BranchModel(
       id: json['id'] is int
           ? json['id']
@@ -37,9 +52,10 @@ class BranchModel {
           ? (json['longitud'] as num).toDouble()
           : double.tryParse(json['longitud']?.toString() ?? '-63.1821') ??
                 -63.1821,
-      horarioApertura: json['horario_apertura']?.toString() ?? '09:00',
-      horarioCierre: json['horario_cierre']?.toString() ?? '21:00',
-      activo: json['activo'] != false,
+      horarioApertura: apertura,
+      horarioCierre: cierre,
+      activo: json['activo'] != false &&
+          !(estado != null && estado.contains('INACTIV')),
     );
   }
 
@@ -180,11 +196,21 @@ class ReservationModel {
     this.dispositivoId,
   });
 
-  bool get isPending => estado.toUpperCase() == 'PENDIENTE';
+  // [EXAMEN-2] B1.2.h: la reserva offline queda en `PENDIENTE_SINCRONIZACION`
+  // (no en `PENDIENTE`), por lo que **no** aparecía en la pestaña
+  // "Pendientes" de `reservations_page`.
+  bool get isPending =>
+      const <String>{'PENDIENTE', 'PENDIENTE_SINCRONIZACION'}
+          .contains(estado.toUpperCase());
   bool get isConfirmed => estado.toUpperCase() == 'CONFIRMADA';
   bool get isExpired => estado.toUpperCase() == 'EXPIRADA';
   bool get isCancelled => estado.toUpperCase() == 'CANCELADA';
   bool get isCompleted => estado.toUpperCase() == 'COMPLETADA';
+
+  /// [EXAMEN-2] B1.2.g: la reserva quedó registrada **localmente** y aún no
+  /// se ha sincronizado con el servidor.
+  bool get isPendienteDeSincronizacion =>
+      estado.toUpperCase() == 'PENDIENTE_SINCRONIZACION';
 
   factory ReservationModel.fromJson(Map<String, dynamic> json) {
     var rawItems = json['detalles'] ?? json['items'] ?? [];

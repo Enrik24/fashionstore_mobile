@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import '../../config/constants.dart';
 import '../models/cart_model.dart';
 import 'api_service.dart';
@@ -14,6 +16,20 @@ class CartService {
   // Si es false, agregarItem bloquea aunque haya datos locales.
   bool habilitarCarritoOffline = true;
 
+  /// Se emite cuando el carrito local se convierte en orden con pago diferido
+  /// y se borra de SQLite. La UI debe limpiar también su estado en memoria:
+  /// si no, un fallo de red posterior en `loadCart()` vuelve a sembrar los
+  /// ítems viejos desde `_cart.items` (producto fantasma tras sincronizar).
+  final StreamController<void> _carritoConsumido =
+      StreamController<void>.broadcast();
+  Stream<void> get carritoConsumido => _carritoConsumido.stream;
+
+  void notificarCarritoConsumido() {
+    if (!_carritoConsumido.isClosed) _carritoConsumido.add(null);
+  }
+
+  void dispose() => _carritoConsumido.close();
+
   CartService({
     required ApiService apiService,
     OfflineCartService? offline,
@@ -26,7 +42,11 @@ class CartService {
 
   // [EXAMEN-2] C2.5 CU15: guarda para UI (mensaje §19).
   static String get mensajeCarritoOfflineDeshabilitado =>
-      'El carrito offline está deshabilitado para este tenant. Regularice su plan o conecte el dispositivo.';
+      'El carrito offline está deshabilitado para esta empresa. Puedes consultar el catálogo, pero no comprar sin conexión.';
+
+  // [EXAMEN-2] §19: aviso de stock referencial en el carrito/POS offline.
+  static String mensajeStockReferencial(int stock) =>
+      'Stock local referencial: $stock. La cantidad se validará al sincronizar.';
 
   void _verificarHabilitado() {
     if (!habilitarCarritoOffline) {
@@ -70,11 +90,21 @@ class CartService {
         rethrow;
       }
       final variante = await _varianteLocal(varianteProductoId);
+      // [EXAMEN-2] B1.6.b: si la variante **no está en el catálogo local
+      // descargado**, no se puede agregar al carrito: antes se insertaba con
+      // precio 0 y sin stock, lo que producía un carrito con total 0.
+      if (variante == null) {
+        throw ApiException(
+          message:
+              'El producto no está en el catálogo descargado. '
+              'Conéctate y descarga los datos para agregarlo al carrito.',
+        );
+      }
       final local = await _offline?.agregarItem(
         varianteProductoId: varianteProductoId,
         cantidad: cantidad,
-        precioUnitario: variante?.precioVariante ?? 0,
-        stockConocido: variante?.stockTotal,
+        precioUnitario: variante.precioVariante ?? variante.precio ?? 0,
+        stockConocido: variante.stockTotal,
       );
       if (local != null) return local;
       throw _apiService.handleError(e);
@@ -114,9 +144,12 @@ class CartService {
     try {
       await _apiService.dio.delete(AppConstants.epCarrito);
     } catch (e) {
-      await _offline?.vaciar();
-      return;
+      // Sin red: igual se limpia la copia local (abajo).
     }
+    // [FIX] Antes, con conexión sólo se borraba el carrito del servidor y la
+    // copia SQLite seguía con los ítems offline: al volver a cargar reaparecían.
+    await _offline?.vaciar();
+    notificarCarritoConsumido();
   }
 
   /// `POST /carrito/aplicar-cupon` (CU27).
@@ -133,8 +166,7 @@ class CartService {
     } catch (e) {
       if (_offline != null) {
         throw ApiException(
-          message:
-              'Los cupones requieren conexion y no se aplican sin conexion.',
+          message: 'Los cupones se validan solo con conexión.',
         );
       }
       throw _apiService.handleError(e);
@@ -177,11 +209,23 @@ class CartService {
     if (offline == null) {
       throw StateError('El carrito offline no esta disponible.');
     }
-    return offline.convertirEnPagoDiferido(
+    final resultado = await offline.convertirEnPagoDiferido(
       sucursalId: sucursalId,
       direccionEnvio: direccionEnvio,
       clienteId: clienteId,
     );
+    notificarCarritoConsumido();
+    return resultado;
+  }
+
+  /// [FIX] Garantiza un carrito local con los ítems indicados antes de
+  /// convertir a orden con pago diferido (delegación al servicio offline).
+  Future<void> asegurarCarritoConItems(List<CartItemModel> items) async {
+    final offline = _offline;
+    if (offline == null) {
+      throw StateError('El carrito offline no esta disponible.');
+    }
+    return offline.asegurarCarritoConItems(items);
   }
 
   // [EXAMEN-2] C2.5 CU15: flujo validar -> aceptar -> convertir (RN-014).

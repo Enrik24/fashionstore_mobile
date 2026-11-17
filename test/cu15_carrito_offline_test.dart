@@ -89,6 +89,51 @@ void main() {
     },
   );
 
+  // [FIX] La conversión avisa a la UI para que limpie también su memoria;
+  // si no, un fallo de red posterior re-siembra los ítems en SQLite.
+  test('FIX: convertir el carrito notifica para limpiar el estado en memoria',
+      () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final prefs = await SharedPreferences.getInstance();
+    final storage = StorageService(
+      secureStorage: const FlutterSecureStorage(),
+      prefs: prefs,
+    );
+    final api = ApiService(storageService: storage);
+    final db = LocalDatabaseService(factory: databaseFactoryFfi, cifrar: false);
+    await db.abrir(ruta: inMemoryDatabasePath);
+    final offline = OfflineCartService(
+      database: db,
+      tenantId: 6,
+      dispositivoId: 'device-cart',
+      client: FakeOfflineClient(),
+    );
+    final cartService = CartService(apiService: api, offline: offline);
+
+    await offline.agregarItem(
+      varianteProductoId: 4,
+      cantidad: 1,
+      precioUnitario: 25,
+    );
+
+    var notificaciones = 0;
+    final sub = cartService.carritoConsumido.listen((_) => notificaciones++);
+
+    await cartService.convertirEnPagoDiferido(
+      sucursalId: 1,
+      direccionEnvio: 'Calle local',
+      clienteId: null,
+    );
+
+    // Los eventos de un StreamController se entregan en un microtask.
+    await Future<void>.delayed(Duration.zero);
+    expect(notificaciones, 1);
+    expect(await offline.obtenerCarritoLocal(), isNull);
+    await sub.cancel();
+    cartService.dispose();
+    await db.cerrar();
+  });
+
   // [EXAMEN-2] C2.5 P1: habilitarCarritoOffline=false bloquea agregar y convertir.
   test('CU15 habilitarCarritoOffline=false bloquea el carrito offline', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});

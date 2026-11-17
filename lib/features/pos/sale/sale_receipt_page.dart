@@ -60,14 +60,25 @@ class SaleReceiptPage extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 24),
-          if (rutaPdf != null)
+          if (rutaPdf != null) ...[
             FilledButton.icon(
               onPressed: () => context
                   .read<OfflineDocumentService>()
                   .abrirArchivo(rutaPdf!),
               icon: const Icon(Icons.picture_as_pdf),
-              label: const Text('Reimprimir / abrir PDF'),
+              label: const Text('Abrir PDF'),
             ),
+            const SizedBox(height: 8),
+            // [EXAMEN-2] B1.3.i: el servicio de documentos ya tenía
+            // `imprimir()` pero no estaba cableado a ningún botón.
+            OutlinedButton.icon(
+              onPressed: () => context
+                  .read<OfflineDocumentService>()
+                  .imprimir(rutaPdf!),
+              icon: const Icon(Icons.print_outlined),
+              label: const Text('Imprimir comprobante'),
+            ),
+          ],
         ],
       ),
     );

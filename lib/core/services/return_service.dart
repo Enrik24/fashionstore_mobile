@@ -41,17 +41,22 @@ class ReturnService {
     int? tenantId,
     OfflineQueueService? queue,
     LocalAuditService? audit,
+    // [EXAMEN-2] B0.4: id del usuario para estampar `usuario_id`.
+    int? usuarioId,
   }) : _apiService = apiService,
        _database = database,
        _tenantId = tenantId,
        _queue = queue,
-       _audit = audit;
+       _audit = audit,
+       _usuarioId = usuarioId;
 
   final ApiService? _apiService;
   final LocalDatabaseService? _database;
   final int? _tenantId;
   final OfflineQueueService? _queue;
   final LocalAuditService? _audit;
+  // [EXAMEN-2] B0.4.
+  final int? _usuarioId;
 
   /// `POST /devoluciones/` — 201.
   Future<ReturnRequestModel> crearSolicitud({
@@ -137,7 +142,11 @@ class ReturnService {
   LocalReturnRepository get _returnRepo {
     final db = _database?.database;
     if (db == null) throw StateError('La base local no está abierta.');
-    return LocalReturnRepository(db, tenantId: _tenantId ?? 0);
+    return LocalReturnRepository(
+      db,
+      tenantId: _tenantId ?? 0,
+      usuarioId: _usuarioId,
+    );
   }
 
   /// Calcula la diferencia y su clasificación (RN-025).
@@ -193,6 +202,9 @@ class ReturnService {
     required List<LineaDevolucion> items,
     bool saldoFavor = false,
     DateTime? fechaCambioLimite,
+    // [EXAMEN-2] B2.4 / RN-024: la devolución deriva de un caso sin
+    // alternativa de talla; el backend debe notificar al cliente.
+    bool notificarAlternativa = false,
   }) async {
     if (items.isEmpty) {
       throw const FormatException('La devolución exige al menos una prenda');
@@ -249,7 +261,10 @@ class ReturnService {
           (item) => (
             varianteId: item.varianteProductoId,
             delta: item.cantidad,
-            deltaReserva: 0,
+            // [EXAMEN-2] B0.3.b: la prenda devuelta reingresa y libera su
+            // reserva provisional.
+            deltaReserva: -item.cantidad,
+            tipo: 'DEVOLUCION',
           ),
         )
         .toList();
@@ -264,10 +279,48 @@ class ReturnService {
       uuidOperacion: uuid,
       tipoOperacion: 'DEVOLUCION',
       sucursalId: sucursalId,
-      payload: <String, Object?>{...cabecera, 'uuid_offline': uuid},
+      payload: <String, Object?>{
+        ...cabecera,
+        'uuid_offline': uuid,
+        // [EXAMEN-2] B2.4 / RN-024: el backend notifica al cliente la
+        // falta de talla alternativa (RN-022).
+        if (notificarAlternativa) 'notificar_alternativa': true,
+      },
     );
     await _auditar('DEVOLUCION', uuid);
+    // [EXAMEN-2] B1.5.g / RN-024: si no hay cliente identificado, la
+    // notificación queda **PENDIENTE** y se deja el aviso para que la
+    // sucursal contacte al cliente por teléfono.
+    await _registrarNotificacionPendiente(
+      uuid: uuid,
+      tipo: 'DEVOLUCION',
+      clienteId: clienteId,
+      motivo: motivo,
+    );
     return (await getSolicitudDesdeLocal(uuid))!;
+  }
+
+  /// [EXAMEN-2] B1.5.g: deja constancia de una notificación pendiente
+  /// (sin datos de contacto del cliente) en la bitácora local.
+  Future<void> _registrarNotificacionPendiente({
+    required String uuid,
+    required String tipo,
+    int? clienteId,
+    String? motivo,
+  }) async {
+    if (clienteId != null && clienteId > 0) return;
+    await _audit?.registrar(
+      tenantId: _tenantId ?? 0,
+      tipo: 'NOTIFICACION_PENDIENTE',
+      mensaje:
+          'La $tipo $uuid no tiene cliente identificado: notificar por '
+          'teléfono en la sucursal.',
+      datos: <String, dynamic>{
+        'uuid_offline': uuid,
+        'tipo_solicitud': tipo,
+        'motivo': motivo,
+      },
+    );
   }
 
   /// CU18: crea una reposición offline (mismo producto obligatorio).
@@ -287,6 +340,9 @@ class ReturnService {
     required List<LineaDevolucion> items,
     DateTime? fechaCambioLimite,
     String metodoPagoDiferencia = 'EFECTIVO',
+    // [EXAMEN-2] B1.10.h: indica que la operación se registra sin conexión
+    // (restringe el medio de pago de la diferencia a efectivo).
+    bool offline = false,
   }) async {
     if (items.isEmpty) {
       throw const FormatException('La reposición exige al menos una prenda');
@@ -304,12 +360,18 @@ class ReturnService {
         );
       }
       final productoNueva = await _productoDeVariante(cambio);
-      if (productoNueva == null || (item.productoId != null && productoNueva != item.productoId)) {
-        if (productoNueva != null) {
-          throw const FormatException(
-            'La prenda nueva debe ser del mismo producto (CU18)',
-          );
-        }
+      // [EXAMEN-2] B0.3.d: si la variante nueva no está en el catálogo local
+      // no se puede verificar que sea del mismo producto ⇒ error explícito
+      // (antes se continuaba en silencio).
+      if (productoNueva == null) {
+        throw const FormatException(
+          'La variante nueva no está en el catálogo local descargado',
+        );
+      }
+      if (item.productoId != null && productoNueva != item.productoId) {
+        throw const FormatException(
+          'La prenda nueva debe ser del mismo producto (CU18)',
+        );
       }
     }
     // Stock verificado antes de reservar (central con red, local sin red).
@@ -325,7 +387,7 @@ class ReturnService {
     final uuid = await _uuid();
     var diferenciaTotal = 0.0;
     final itemsMap = <Map<String, Object?>>[];
-    final movimientos = <({int varianteId, int delta, int deltaReserva})>[];
+    final movimientos = <({int varianteId, int delta, int deltaReserva, String tipo})>[];
     for (final item in items) {
       final precioNueva = item.precioVarianteNueva ?? item.precioUnitario;
       final diferenciaLinea = (precioNueva - item.precioUnitario) * item.cantidad;
@@ -346,16 +408,31 @@ class ReturnService {
       movimientos.add((
         varianteId: item.varianteProductoId,
         delta: item.cantidad,
-        deltaReserva: 0,
+        // [EXAMEN-2] B0.3.b: la prenda devuelta reingresa al inventario y
+        // libera su reserva provisional.
+        deltaReserva: -item.cantidad,
+        tipo: 'REPOSICION_ENTRADA',
       ));
       movimientos.add((
         varianteId: item.varianteCambioId!,
         delta: -item.cantidad,
-        deltaReserva: -item.cantidad,
+        // [EXAMEN-2] B0.3.b: la prenda nueva sale del inventario **y queda
+        // reservada provisionalmente** para que no se venda a otro cliente
+        // mientras la reposición no se sincroniza (antes sólo se decrementaba
+        // `cantidad_reservada` sin haberla incrementado nunca).
+        deltaReserva: item.cantidad,
+        tipo: 'REPOSICION_SALIDA',
       ));
     }
     final clasificacion = _clasificarDiferencia(diferenciaTotal);
     final numeroReposicion = 'REP-LOCAL-${uuid.substring(0, 8).toUpperCase()}';
+    // [EXAMEN-2] B1.10.h: sin conexión sólo se puede cobrar en efectivo
+    // (RN-008: la pasarela no opera sin red).
+    if (offline && metodoPagoDiferencia.toUpperCase() != 'EFECTIVO') {
+      throw const FormatException(
+        'Sin conexión la diferencia de precio sólo puede cobrarse en efectivo',
+      );
+    }
     final cabecera = <String, Object?>{
       'orden_origen_id': ordenOrigenId,
       'numero_comprobante_origen': numeroComprobanteOrigen.trim(),
@@ -381,15 +458,46 @@ class ReturnService {
       cabecera: cabecera,
       items: itemsMap,
       movimientosStock: movimientos,
+      // [EXAMEN-2] B1.10.i: el cobro de la diferencia queda trazado.
+      movimientosPago: clasificacion.pagado > 0
+          ? <({int varianteId, double monto, String medioPago})>[
+              (
+                varianteId: items.first.varianteProductoId,
+                monto: clasificacion.pagado,
+                medioPago: metodoPagoDiferencia,
+              ),
+            ]
+          : const [],
       sucursalId: codigoSucursal,
     );
     await _queue?.encolar(
       uuidOperacion: uuid,
       tipoOperacion: 'REPOSICION',
       sucursalId: sucursalId,
-      payload: <String, Object?>{...cabecera, 'uuid_offline': uuid},
+      payload: <String, Object?>{
+        ...cabecera,
+        'uuid_offline': uuid,
+        // [EXAMEN-2] B0.3.e: la reserva provisional de la prenda nueva viaja
+        // al servidor para que refleje la misma reserva (RN-025).
+        'reserva_provisional': movimientos
+            .where((m) => m.tipo == 'REPOSICION_SALIDA')
+            .map(
+              (m) => <String, Object?>{
+                'variante_producto_id': m.varianteId,
+                'cantidad': m.delta.abs(),
+              },
+            )
+            .toList(growable: false),
+      },
     );
     await _auditar('REPOSICION', uuid);
+    // [EXAMEN-2] B1.5.g / RN-024: notificación pendiente sin contacto.
+    await _registrarNotificacionPendiente(
+      uuid: uuid,
+      tipo: 'REPOSICION',
+      clienteId: clienteId,
+      motivo: motivo,
+    );
     return (await getSolicitudDesdeLocal(uuid))!;
   }
 
@@ -413,6 +521,12 @@ class ReturnService {
     items: items,
     fechaCambioLimite: fechaCambioLimite,
   );
+
+  /// [EXAMEN-2] B0.3.c: producto de una variante desde el catálogo local.
+  /// Permite a la UI completar `LineaSeleccion.productoId` para que la
+  /// validación de "misma prenda" (CU18) sea realmente exigible.
+  Future<int?> productoIdDeVarianteLocal(int varianteId) =>
+      _productoDeVariante(varianteId);
 
   Future<int?> _productoDeVariante(int varianteId) async {
     final db = _database?.database;
@@ -672,6 +786,12 @@ class ReturnService {
 
   /// `GET /devoluciones/alternativas-talla/{variante_id}` (RN-022).
   /// Vacío ante 404/501 N3.
+  ///
+  /// [EXAMEN-2] B1.10.d: si el backend no responde (o no hay red), se busca
+  /// **en el catálogo local** una talla mayor o menor con stock. Antes el
+  /// método devolvía siempre lista vacía sin conexión, de modo que el cajero
+  /// caía en `SIN_ALTERNATIVA` aunque la talla existiera en otra sucursal
+  /// ya descargada.
   Future<List<Map<String, Object?>>> buscarAlternativaTalla({
     required int varianteId,
     int? sucursalId,
@@ -679,33 +799,135 @@ class ReturnService {
     int cantidad = 1,
   }) async {
     final api = _apiService;
-    if (api == null) return const [];
-    try {
-      final response = await api.dio.get(
-        '${AppConstants.epDevolucionesAlternativasTalla}/$varianteId',
-        queryParameters: {
-          if (sucursalId != null) 'sucursal_id': sucursalId,
-          'direccion': direccion.toUpperCase(),
-          'cantidad': cantidad,
-        },
-      );
-      if (response.data is List) {
-        return (response.data as List)
-            .map((e) => Map<String, Object?>.from(e as Map))
-            .toList();
-      }
-      if (response.data is Map<String, dynamic>) {
-        final mapa = response.data as Map<String, dynamic>;
-        final lista = mapa['alternativas'] ?? mapa['items'];
-        if (lista is List) {
-          return lista.map((e) => Map<String, Object?>.from(e)).toList();
+    if (api != null) {
+      try {
+        final response = await api.dio.get(
+          '${AppConstants.epDevolucionesAlternativasTalla}/$varianteId',
+          queryParameters: {
+            if (sucursalId != null) 'sucursal_id': sucursalId,
+            'direccion': direccion.toUpperCase(),
+            'cantidad': cantidad,
+          },
+        );
+        if (response.data is List) {
+          final remotas = (response.data as List)
+              .map((e) => Map<String, Object?>.from(e as Map))
+              .toList();
+          if (remotas.isNotEmpty) return remotas;
         }
+        if (response.data is Map<String, dynamic>) {
+          final mapa = response.data as Map<String, dynamic>;
+          final lista = mapa['alternativas'] ?? mapa['items'];
+          if (lista is List) {
+            final remotas = lista
+                .map((e) => Map<String, Object?>.from(e))
+                .toList();
+            if (remotas.isNotEmpty) return remotas;
+          }
+        }
+      } catch (_) {
+        // 404/501 N3 o sin red: se degrada al catálogo local.
       }
-      return const [];
-    } catch (_) {
-      return const [];
     }
+    return buscarAlternativaLocal(
+      varianteId: varianteId,
+      sucursalId: sucursalId,
+      direccion: direccion,
+      cantidad: cantidad,
+    );
   }
+
+  /// [EXAMEN-2] B1.10.d: alternativas de talla **en el catálogo local**.
+  ///
+  /// Busca variantes del mismo producto con una talla mayor (o menor) que la
+  /// original y con stock disponible en alguna sucursal descargada.
+  Future<List<Map<String, Object?>>> buscarAlternativaLocal({
+    required int varianteId,
+    int? sucursalId,
+    String direccion = 'MAYOR',
+    int cantidad = 1,
+  }) async {
+    final db = _database?.database;
+    if (db == null) return const [];
+    final variante = await db.query(
+      'variantes',
+      where: 'id = ? AND tenant_id = ?',
+      whereArgs: <Object?>[varianteId, _tenantId ?? 0],
+      limit: 1,
+    );
+    if (variante.isEmpty) return const [];
+    final productoId = (variante.first['producto_id'] as num?)?.toInt();
+    final indiceOriginal = _indiceTalla(variante.first['talla']?.toString());
+    if (productoId == null || indiceOriginal == null) return const [];
+
+    // Variantes del mismo producto.
+    final candidatas = await db.query(
+      'variantes',
+      where: 'producto_id = ? AND tenant_id = ? AND deleted_at IS NULL',
+      whereArgs: <Object?>[productoId, _tenantId ?? 0],
+    );
+    final buscarMenor = direccion.toUpperCase() == 'MENOR';
+    final resultado = <Map<String, Object?>>[];
+    for (final candidata in candidatas) {
+      final id = (candidata['id'] as num?)?.toInt();
+      if (id == null || id == varianteId) continue;
+      final indice = _indiceTalla(candidata['talla']?.toString());
+      if (indice == null) continue;
+      final esMayor = indice > indiceOriginal;
+      if (buscarMenor ? esMayor : !esMayor) continue;
+      final stocks = await db.query(
+        'stock',
+        where: 'variante_id = ? AND tenant_id = ?',
+        whereArgs: <Object?>[id, _tenantId ?? 0],
+      );
+      for (final stock in stocks) {
+        final disponible =
+            ((stock['cantidad'] as num?)?.toInt() ?? 0) -
+            ((stock['cantidad_reservada'] as num?)?.toInt() ?? 0);
+        if (disponible < cantidad) continue;
+        final idSucursal = (stock['sucursal_id'] as num?)?.toInt();
+        if (sucursalId != null && idSucursal == sucursalId) continue;
+        resultado.add(<String, Object?>{
+          'variante_id': id,
+          'stock': disponible,
+          'sucursal_id': idSucursal,
+          'talla': candidata['talla']?.toString(),
+          'origen': 'local',
+          // [EXAMEN-2] B1.10.f: se puede ofrecer traspaso a esa sucursal.
+          'traspaso_disponible': idSucursal != null && idSucursal != sucursalId,
+        });
+        break;
+      }
+    }
+    return resultado;
+  }
+
+  /// [EXAMEN-2] B1.10.d: índice de la talla dentro del orden canónico.
+  ///
+  /// La tabla local `variantes` guarda el **valor** de la talla (`talla`) pero
+  /// no el `orden` del backend, así que el índice se deduce del valor.
+  /// Devuelve `null` si la talla no se puede ordenar (p. ej. "Única").
+  static int? _indiceTalla(String? talla) {
+    if (talla == null || talla.isEmpty) return null;
+    final valor = talla.trim().toUpperCase();
+    final indice = _ordenesTalla.indexOf(valor);
+    if (indice >= 0) return indice;
+    // Tallas numéricas: 30 < 32 < 34 …
+    return int.tryParse(valor);
+  }
+
+  /// Orden canónico de tallas usado para comparar (B1.10.d).
+  static const List<String> _ordenesTalla = <String>[
+    'XXS',
+    'XS',
+    'S',
+    'M',
+    'L',
+    'XL',
+    'XXL',
+    '3XL',
+    '4XL',
+  ];
 
   /// `POST /devoluciones/{solicitud_id}/notificar-alternativa` (RN-022).
   Future<bool> notificarSinAlternativa(int solicitudId) async {

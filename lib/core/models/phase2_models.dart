@@ -238,6 +238,19 @@ class SyncSummaryModel {
       ultimoError: ultimoError,
     );
   }
+
+  /// [EXAMEN-2] Copia con reemplazos (p.ej. para anexar `ultimoError` sin
+  /// perder los contadores cuando un chequeo previo aborta el envío).
+  SyncSummaryModel copyWith({String? ultimoError}) => SyncSummaryModel(
+    pendientes: pendientes,
+    enviadas: enviadas,
+    confirmadas: confirmadas,
+    rechazadas: rechazadas,
+    conflictos: conflictos,
+    duplicadas: duplicadas,
+    erroresCriticos: erroresCriticos,
+    ultimoError: ultimoError ?? this.ultimoError,
+  );
 }
 
 class LocalSaleModel {

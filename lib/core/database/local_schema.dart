@@ -7,7 +7,9 @@ class LocalSchema {
   const LocalSchema._();
 
   // [EXAMEN-2] Fase 3 (CU13/CU18/CU19): v3 devoluciones y v4 compensaciones.
-  static const int version = 4;
+  // [EXAMEN-2] Plan de cierre de brechas (Ola 1): v5 flags de revisión, stock
+  // no confirmado, libro de movimientos e idempotencia por uuid_operacion.
+  static const int version = 5;
   static const String databaseName = 'fashionstore_movil.db';
   static const int reservedGlobalTenantId = 0;
   static const String schemaMetaKey = '__esquema__';
@@ -42,6 +44,8 @@ class LocalSchema {
     'devoluciones_locales',
     'items_devolucion_local',
     'compensaciones',
+    // [EXAMEN-2] v5: libro de movimientos de inventario (RN-021/RNF-21).
+    'movimientos_inventario',
   ];
 
   /// Tablas cuyos datos se eliminan por tenant.
@@ -75,6 +79,8 @@ class LocalSchema {
     'devoluciones_locales',
     'items_devolucion_local',
     'compensaciones',
+    // [EXAMEN-2] v5: libro de movimientos (se borra con el tenant, RN-019).
+    'movimientos_inventario',
   ];
 
   static const List<String> indices = <String>[
@@ -141,6 +147,12 @@ class LocalSchema {
     'idx_compensaciones_tenant',
     'idx_compensaciones_operacion',
     'uq_compensaciones_operacion',
+    // [EXAMEN-2] v5.
+    'idx_movimientos_uuid',
+    'idx_movimientos_tenant',
+    'idx_movimientos_tipo',
+    'idx_movimientos_fecha',
+    'uq_compensaciones_uuid_operacion',
   ];
 
   static Future<void> crearV1(DatabaseExecutor db) async {
@@ -264,6 +276,7 @@ class LocalSchema {
         id INTEGER PRIMARY KEY, tenant_id INTEGER NOT NULL, dispositivo_id TEXT,
         usuario_id INTEGER, producto_id INTEGER NOT NULL, talla_id INTEGER,
         color_id INTEGER, sku_variante TEXT NOT NULL, precio REAL NOT NULL DEFAULT 0,
+        sku_producto TEXT, talla TEXT, color TEXT, precio_variante REAL,
         version INTEGER NOT NULL DEFAULT 1, updated_at TEXT, deleted_at TEXT,
         fecha_actualizacion TEXT NOT NULL
       )
@@ -361,10 +374,21 @@ class LocalSchema {
       'descuento_aplicado': 'REAL NOT NULL DEFAULT 0',
       'cupon_codigo': 'TEXT',
     });
+    // [EXAMEN-2] Desajuste con el backend Examen 2: las variantes llegan con
+    // sku_producto, talla, color y precio_variante embedded. Migración
+    // idempotente para instalaciones existentes (causa de descarga incompleta).
+    await _asegurarColumnas(db, 'variantes', <String, String>{
+      'sku_producto': 'TEXT',
+      'talla': 'TEXT',
+      'color': 'TEXT',
+      'precio_variante': 'REAL',
+    });
     await _asegurarColumnas(db, 'ventas_locales', <String, String>{
       'cajero_id': 'INTEGER',
       'es_offline': 'INTEGER NOT NULL DEFAULT 1',
       'estado_sincronizacion': 'TEXT',
+      // [EXAMEN-2] RN-012 (CU13/CU18): plazo de cambio registrado en local.
+      'fecha_limite_cambio': 'TEXT',
     });
     await _asegurarColumnas(db, 'items_venta_local', <String, String>{
       'producto_nombre': 'TEXT',
@@ -455,7 +479,8 @@ class LocalSchema {
         subtotal REAL NOT NULL DEFAULT 0,
         impuestos REAL NOT NULL DEFAULT 0, total REAL NOT NULL DEFAULT 0,
         monto_recibido REAL NOT NULL DEFAULT 0, cambio REAL NOT NULL DEFAULT 0,
-        metodo_pago TEXT, datos_json TEXT, fecha_registro_local TEXT NOT NULL,
+        metodo_pago TEXT, datos_json TEXT,
+        fecha_limite_cambio TEXT, fecha_registro_local TEXT NOT NULL,
         fecha_actualizacion TEXT NOT NULL
       )
     ''');
@@ -702,6 +727,80 @@ class LocalSchema {
     // [EXAMEN-2] CU19: una sola compensacion por operacion rechazada.
     await db.execute(
       'CREATE UNIQUE INDEX IF NOT EXISTS uq_compensaciones_operacion ON compensaciones(operacion_offline_id)',
+    );
+  }
+
+  /// [EXAMEN-2] v5 (Plan de cierre de brechas, Ola 1):
+  /// - `requiere_revision` en operaciones/ventas/reservas/devoluciones: marca
+  ///   las operaciones forzadas por el cajero (stock local insuficiente) que
+  ///   el servidor debe revisar al sincronizar (RN-006).
+  /// - `cantidad_no_confirmada` en `stock`: distingue el descuento provisional
+  ///   de una venta offline del descuento confirmado (CU07, RN-006).
+  /// - `numero_comprobante` en `ventas_locales`: permite buscar la venta
+  ///   original por comprobante sin conexión (CU13/CU18), no solo por UUID.
+  /// - `movimientos_inventario`: libro de movimientos con tipo
+  ///   (DEVOLUCION / REPOSICION_ENTRADA / REPOSICION_SALIDA / VENTA) para la
+  ///   trazabilidad offline de inventario (RN-021/RNF-21).
+  /// - Índice único de compensación por `uuid_operacion` (RN-020).
+  ///
+  /// Idempotente y **sin borrar datos** de v1–v4.
+  static Future<void> crearV5(DatabaseExecutor db) async {
+    await _asegurarColumnas(db, 'operaciones', <String, String>{
+      'requiere_revision': 'INTEGER NOT NULL DEFAULT 0',
+    });
+    await _asegurarColumnas(db, 'ventas_locales', <String, String>{
+      'numero_comprobante': 'TEXT',
+      'numero_comprobante_generado': 'TEXT',
+      'requiere_revision': 'INTEGER NOT NULL DEFAULT 0',
+    });
+    await _asegurarColumnas(db, 'reservas_locales', <String, String>{
+      'cliente_id': 'INTEGER',
+      'requiere_revision': 'INTEGER NOT NULL DEFAULT 0',
+    });
+    await _asegurarColumnas(db, 'stock', <String, String>{
+      'cantidad_no_confirmada': 'INTEGER NOT NULL DEFAULT 0',
+    });
+    await _asegurarColumnas(db, 'devoluciones_locales', <String, String>{
+      'requiere_revision': 'INTEGER NOT NULL DEFAULT 0',
+    });
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS movimientos_inventario (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        uuid_offline TEXT NOT NULL,
+        tenant_id INTEGER NOT NULL,
+        dispositivo_id TEXT,
+        usuario_id INTEGER,
+        sucursal_id INTEGER,
+        tipo TEXT NOT NULL,
+        variante_producto_id INTEGER NOT NULL,
+        cantidad INTEGER NOT NULL,
+        cantidad_no_confirmada INTEGER NOT NULL DEFAULT 0,
+        motivo TEXT,
+        fecha_registro_local TEXT NOT NULL,
+        fecha_actualizacion TEXT NOT NULL
+      )
+    ''');
+    await _crearIndicesV5(db);
+  }
+
+  static Future<void> _crearIndicesV5(DatabaseExecutor db) async {
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_movimientos_uuid ON movimientos_inventario(uuid_offline)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_movimientos_tenant ON movimientos_inventario(tenant_id)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_movimientos_tipo ON movimientos_inventario(tipo)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_movimientos_fecha ON movimientos_inventario(fecha_registro_local)',
+    );
+    // [EXAMEN-2] RN-020: la compensación es idempotente por `uuid_operacion`.
+    // SQLite admite varios NULL en un índice único, por lo que las filas
+    // antiguas sin `uuid_operacion` no entran en conflicto.
+    await db.execute(
+      'CREATE UNIQUE INDEX IF NOT EXISTS uq_compensaciones_uuid_operacion ON compensaciones(tenant_id, uuid_operacion)',
     );
   }
 }

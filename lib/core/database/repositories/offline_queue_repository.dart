@@ -54,6 +54,11 @@ class OfflineQueueRepository extends TenantLocalRepository {
     return siguiente;
   }
 
+  /// [EXAMEN-2] B2.11 (§9.5 del plan padre): la operación se persiste en la
+  /// tabla `operaciones` con el cuerpo en `payload_json` (JSON string). Al
+  /// **enviar** (POST /offline/sync) se decodifica a `payload` (mapa JSON).
+  /// El contrato completo del request/respuesta y los estados válidos está
+  /// documentado en el bloque de cabecera de `core/services/sync_engine_service.dart`.
   Future<String> encolar({
     required String uuidOperacion,
     required String tipoOperacion,
@@ -97,13 +102,43 @@ class OfflineQueueRepository extends TenantLocalRepository {
 
   Future<List<Map<String, Object?>>> listarPendientes({int limite = 50}) {
     // [EXAMEN-2] C2.2: respetar backoff (proximo_intento) para no reintentar antes de tiempo.
+    // [FIX-SYNC] Sólo PENDIENTE/ERROR se reenvían (como el frontend web):
+    // RECHAZADA/CONFLICTO son terminales y quedan para revisión manual;
+    // incluirlas aquí reenviaba el mismo rechazo en bucle infinito.
     final ahora = DateTime.now().toUtc().toIso8601String();
     return consultar(
       'operaciones',
       where:
-          "tenant_id = ? AND estado_sincronizacion IN ('PENDIENTE', 'ERROR', 'RECHAZADA') "
+          "tenant_id = ? AND estado_sincronizacion IN ('PENDIENTE', 'ERROR') "
           "AND (proximo_intento IS NULL OR proximo_intento <= ?)",
       whereArgs: <Object?>[tenantId, ahora],
+      orderBy: 'secuencia_local ASC',
+      limit: limite,
+    );
+  }
+
+  /// [EXAMEN-2] B1.4.b: pendientes **excluyendo** los tipos detenidos por un
+  /// `ERROR_CRITICO` (RN-017: el tipo queda parado hasta que se regule).
+  Future<List<Map<String, Object?>>> listarPendientesExcluyendo(
+    List<String> tiposDetenidos, {
+    int limite = 50,
+  }) async {
+    final ahora = DateTime.now().toUtc().toIso8601String();
+    final condiciones = <String>[
+      'tenant_id = ?',
+      "estado_sincronizacion IN ('PENDIENTE', 'ERROR')",
+      '(proximo_intento IS NULL OR proximo_intento <= ?)',
+    ];
+    final argumentos = <Object?>[tenantId, ahora];
+    if (tiposDetenidos.isNotEmpty) {
+      final marcadores = List<String>.filled(tiposDetenidos.length, '?').join(', ');
+      condiciones.add('tipo_operacion NOT IN ($marcadores)');
+      argumentos.addAll(tiposDetenidos);
+    }
+    return consultar(
+      'operaciones',
+      where: condiciones.join(' AND '),
+      whereArgs: argumentos,
       orderBy: 'secuencia_local ASC',
       limit: limite,
     );
@@ -159,8 +194,85 @@ class OfflineQueueRepository extends TenantLocalRepository {
     );
   }
 
+  /// [BUG-SYNC] Deja en NULL `proximo_intento` de las operaciones indicadas
+  /// que sigan PENDIENTE/ERROR (las CONFIRMADA/RECHAZADA definitivas no se
+  /// tocan), de modo que `listarPendientes` vuelva a incluirlas de inmediato.
+  Future<int> limpiarProximoIntento(List<String> uuids) {
+    final marcadores = List<String>.filled(uuids.length, '?').join(', ');
+    return db.update(
+      'operaciones',
+      <String, Object?>{
+        'proximo_intento': null,
+        'fecha_actualizacion': DateTime.now().toUtc().toIso8601String(),
+      },
+      where:
+          'uuid_operacion IN ($marcadores) AND tenant_id = ? AND '
+          "estado_sincronizacion IN ('PENDIENTE', 'ERROR')",
+      whereArgs: <Object?>[...uuids, tenantId],
+    );
+  }
+
   Future<int> eliminar(String uuid) =>
       eliminarRegistro('operaciones', 'uuid_operacion', uuid);
+
+  /// [FIX-SYNC] Normaliza las órdenes diferidas encoladas con el payload
+  /// antiguo (`acepta_nuevo_total: false`), que el servidor rechazaba en bucle
+  /// con PRECIO_DESACTUALIZADO. Reescribe el payload a `true` (como el
+  /// frontend web) y reactiva las que quedaron RECHAZADA sólo por ese motivo.
+  /// Devuelve los UUID reactivados para limpiar sus conflictos heredados.
+  Future<List<String>> normalizarOrdenesDiferidas() async {
+    final filas = await consultar(
+      'operaciones',
+      where:
+          "tipo_operacion = 'ORDEN_PAGO_DIFERIDO' AND tenant_id = ? AND "
+          "estado_sincronizacion IN ('PENDIENTE', 'ERROR', 'ENVIADA', 'RECHAZADA', 'CONFLICTO')",
+      whereArgs: <Object?>[tenantId],
+    );
+    final reactivadas = <String>[];
+    for (final fila in filas) {
+      final uuid = fila['uuid_operacion']?.toString() ?? '';
+      if (uuid.isEmpty) continue;
+      Map<String, Object?> payload;
+      try {
+        final decodificado = jsonDecode(
+          fila['payload_json']?.toString() ?? '{}',
+        );
+        payload = decodificado is Map
+            ? Map<String, Object?>.from(decodificado)
+            : <String, Object?>{};
+      } catch (_) {
+        continue;
+      }
+      final cambios = <String, Object?>{};
+      if (payload['acepta_nuevo_total'] != true) {
+        payload['acepta_nuevo_total'] = true;
+        cambios['payload_json'] = jsonEncode(payload);
+      }
+      final estado = fila['estado_sincronizacion']?.toString() ?? '';
+      final resultado = fila['resultado_json']?.toString() ?? '';
+      final motivo = (fila['ultimo_error']?.toString() ?? '').toLowerCase();
+      final rechazadaPorPrecio =
+          estado == 'RECHAZADA' &&
+          (resultado.contains('requiere_aceptacion') ||
+              resultado.contains('PRECIO_DESACTUALIZADO') ||
+              motivo.contains('precio central cambió'));
+      if (rechazadaPorPrecio) {
+        cambios['estado_sincronizacion'] = 'PENDIENTE';
+        cambios['proximo_intento'] = null;
+        cambios['ultimo_error'] = null;
+        reactivadas.add(uuid);
+      }
+      if (cambios.isEmpty) continue;
+      cambios['fecha_actualizacion'] = DateTime.now().toUtc().toIso8601String();
+      await db.update(
+        'operaciones',
+        cambios,
+        where: 'uuid_operacion = ? AND tenant_id = ?',
+        whereArgs: <Object?>[uuid, tenantId],
+      );
+    }
+    return reactivadas;
+  }
 
   Future<Map<String, int>> resumir() async {
     final filas = await db.rawQuery(
